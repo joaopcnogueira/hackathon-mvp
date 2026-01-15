@@ -27,6 +27,7 @@ class PreprocessingService:
         self.categorical_columns: list[str] = []
         self.target_encodings: dict[str, dict[Any, float]] = {}
         self.numeric_stats: dict[str, dict[str, float]] = {}
+        self.imputation_values: dict[str, Any] = {}  # Valores para preencher nulos
         self.nulls_filled: int = 0
 
     def analyze_dataframe(self, df: pd.DataFrame) -> dict:
@@ -126,6 +127,52 @@ class PreprocessingService:
 
         return X, y, preprocessing_info
 
+    def fit_transform(
+        self,
+        X: pd.DataFrame,
+        y: pd.Series
+    ) -> tuple[pd.DataFrame, dict]:
+        """
+        Ajusta o pré-processamento nos dados de treino e os transforma.
+
+        Este método deve ser usado apenas nos dados de TREINO para evitar
+        vazamento de dados (data leakage). Para dados de teste, use transform().
+
+        Parâmetros:
+            X: Features de treino (DataFrame).
+            y: Target de treino (Series).
+
+        Retorna:
+            Tupla com (X transformado, informações do pré-processamento).
+        """
+        self.transformations = []
+        self.nulls_filled = 0
+
+        X = X.copy()
+
+        # Identifica tipos de colunas
+        self._identify_column_types(X)
+
+        # Processa valores nulos
+        X = self._handle_missing_values(X)
+
+        # Processa colunas categóricas com Target Encoding
+        X = self._encode_categorical(X, y)
+
+        # Normaliza colunas numéricas
+        X = self._normalize_numeric(X)
+
+        preprocessing_info = {
+            "transformations": self.transformations,
+            "processed_rows": int(len(X)),
+            "num_features": int(len(X.columns)),
+            "nulls_filled": int(self.nulls_filled),
+            "numeric_columns": list(self.numeric_columns),
+            "categorical_columns": list(self.categorical_columns)
+        }
+
+        return X, preprocessing_info
+
     def _identify_column_types(self, df: pd.DataFrame) -> None:
         """
         Identifica quais colunas são numéricas e quais são categóricas.
@@ -153,22 +200,26 @@ class PreprocessingService:
         Trata valores nulos com estratégia conservadora.
         Numéricas: mediana
         Categóricas: moda (valor mais frequente)
+
+        Os valores de imputação são salvos para uso em dados de teste/predição.
         """
         for col in self.numeric_columns:
+            median_value = df[col].median()
+            self.imputation_values[col] = float(median_value) if pd.notna(median_value) else 0.0
+
             null_count = df[col].isnull().sum()
             if null_count > 0:
-                median_value = df[col].median()
                 df[col] = df[col].fillna(median_value)
                 self.nulls_filled += null_count
 
         for col in self.categorical_columns:
+            mode_value = df[col].mode()
+            impute_val = mode_value[0] if len(mode_value) > 0 else "UNKNOWN"
+            self.imputation_values[col] = impute_val
+
             null_count = df[col].isnull().sum()
             if null_count > 0:
-                mode_value = df[col].mode()
-                if len(mode_value) > 0:
-                    df[col] = df[col].fillna(mode_value[0])
-                else:
-                    df[col] = df[col].fillna("UNKNOWN")
+                df[col] = df[col].fillna(impute_val)
                 self.nulls_filled += null_count
 
         if self.nulls_filled > 0:
@@ -264,7 +315,8 @@ class PreprocessingService:
             "numeric_columns": self.numeric_columns,
             "categorical_columns": self.categorical_columns,
             "target_encodings": self.target_encodings,
-            "numeric_stats": self.numeric_stats
+            "numeric_stats": self.numeric_stats,
+            "imputation_values": self.imputation_values
         }
         joblib.dump(pipeline, filepath)
 
@@ -280,6 +332,7 @@ class PreprocessingService:
         self.categorical_columns = pipeline["categorical_columns"]
         self.target_encodings = pipeline["target_encodings"]
         self.numeric_stats = pipeline["numeric_stats"]
+        self.imputation_values = pipeline.get("imputation_values", {})
 
     def transform(self, df: pd.DataFrame, feature_columns: list[str]) -> pd.DataFrame:
         """
@@ -339,6 +392,45 @@ class PreprocessingService:
 
         # Normaliza todas as colunas
         for col in feature_columns:
+            if col in self.numeric_stats:
+                stats = self.numeric_stats[col]
+                X[col] = (X[col] - stats["mean"]) / stats["std"]
+
+        return X
+
+    def transform_test(self, X: pd.DataFrame) -> pd.DataFrame:
+        """
+        Transforma dados de teste usando parâmetros ajustados no treino.
+
+        Diferente de transform(), este método assume que as colunas já estão
+        no formato correto (mesmo do treino) e aplica as transformações
+        usando os parâmetros salvos durante fit_transform().
+
+        Parâmetros:
+            X: Features de teste (DataFrame com mesmas colunas do treino).
+
+        Retorna:
+            DataFrame transformado.
+        """
+        X = X.copy()
+
+        # Preenche valores nulos usando valores de imputação do treino
+        for col in X.columns:
+            if col in self.imputation_values:
+                X[col] = X[col].fillna(self.imputation_values[col])
+
+        # Aplica target encoding nas categóricas
+        for col in self.categorical_columns:
+            if col not in X.columns:
+                continue
+
+            if col in self.target_encodings:
+                encoding_map = self.target_encodings[col]
+                global_mean = np.mean(list(encoding_map.values()))
+                X[col] = X[col].map(encoding_map).fillna(global_mean)
+
+        # Normaliza usando estatísticas do treino
+        for col in X.columns:
             if col in self.numeric_stats:
                 stats = self.numeric_stats[col]
                 X[col] = (X[col] - stats["mean"]) / stats["std"]

@@ -1,11 +1,18 @@
 """
 Rotas para gerenciamento de experimentos de treinamento.
+
+O pipeline de treinamento segue a ordem correta para evitar data leakage:
+1. Split treino/teste nos dados brutos
+2. Fit do pré-processamento apenas nos dados de treino
+3. Transform dos dados de teste usando parâmetros do treino
+4. Treinamento e avaliação
 """
 import pandas as pd
 from pathlib import Path
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
+from sklearn.model_selection import train_test_split
 
 from app.database import get_db
 from app.config import ARTIFACTS_DIR
@@ -61,16 +68,28 @@ def run_experiment_pipeline(experiment_id: int, db_url: str):
         else:
             df = pd.read_excel(filepath)
 
-        # Executa pré-processamento
-        preprocessor = PreprocessingService()
+        # Separa features e target
+        X = df[experiment.feature_columns].copy()
+        y = df[experiment.target_column].copy()
+
+        # Remove linhas onde o target é nulo
+        valid_mask = y.notna()
+        X = X[valid_mask]
+        y = y[valid_mask]
+
         is_classification = experiment.problem_type == ProblemType.CLASSIFICATION
 
-        X, y, preprocessing_info = preprocessor.preprocess(
-            df=df,
-            target_column=experiment.target_column,
-            feature_columns=experiment.feature_columns,
-            is_classification=is_classification
+        # IMPORTANTE: Split ANTES do pré-processamento para evitar data leakage
+        X_train_raw, X_test_raw, y_train, y_test = train_test_split(
+            X, y, test_size=0.2, random_state=42
         )
+
+        # Pré-processamento: fit apenas nos dados de TREINO
+        preprocessor = PreprocessingService()
+        X_train, preprocessing_info = preprocessor.fit_transform(X_train_raw, y_train)
+
+        # Transforma dados de teste usando parâmetros do treino (sem vazamento)
+        X_test = preprocessor.transform_test(X_test_raw)
 
         # Salva pipeline de pré-processamento
         pipeline_path = ARTIFACTS_DIR / f"pipeline_{experiment.id}.pkl"
@@ -83,11 +102,13 @@ def run_experiment_pipeline(experiment_id: int, db_url: str):
         experiment.status = ExperimentStatus.TRAINING
         db.commit()
 
-        # Executa treinamento
+        # Executa treinamento com dados já divididos
         trainer = TrainingService()
         results = trainer.train_all_models(
-            X=X,
-            y=y,
+            X_train=X_train,
+            X_test=X_test,
+            y_train=y_train,
+            y_test=y_test,
             is_classification=is_classification,
             artifacts_dir=ARTIFACTS_DIR,
             experiment_id=experiment.id

@@ -42,8 +42,10 @@ class TrainingService:
 
     def train_all_models(
         self,
-        X: pd.DataFrame,
-        y: pd.Series,
+        X_train: pd.DataFrame,
+        X_test: pd.DataFrame,
+        y_train: pd.Series,
+        y_test: pd.Series,
         is_classification: bool,
         artifacts_dir: Path,
         experiment_id: int
@@ -51,9 +53,15 @@ class TrainingService:
         """
         Treina todos os modelos para o tipo de problema especificado.
 
+        O split treino/teste deve ser feito ANTES de chamar este método,
+        garantindo que o pré-processamento seja ajustado apenas nos dados
+        de treino (evita data leakage).
+
         Parâmetros:
-            X: Features processadas.
-            y: Target.
+            X_train: Features de treino (já pré-processadas).
+            X_test: Features de teste (já pré-processadas).
+            y_train: Target de treino.
+            y_test: Target de teste.
             is_classification: Se é classificação ou regressão.
             artifacts_dir: Diretório para salvar os modelos.
             experiment_id: ID do experimento.
@@ -61,10 +69,6 @@ class TrainingService:
         Retorna:
             Lista com informações de cada modelo treinado.
         """
-        X_train, X_test, y_train, y_test = train_test_split(
-            X, y, test_size=0.2, random_state=42
-        )
-
         algorithms = (
             self.CLASSIFICATION_ALGORITHMS if is_classification
             else self.REGRESSION_ALGORITHMS
