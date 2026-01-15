@@ -1,0 +1,92 @@
+/* Estilos customizados da plataforma AutoML */
+
+body {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+main {
+    flex: 1;
+}
+
+.navbar-brand {
+    font-weight: bold;
+}
+
+.card {
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    margin-bottom: 1rem;
+}
+
+.card-header {
+    background-color: #f8f9fa;
+    font-weight: 500;
+}
+
+.table th {
+    font-weight: 600;
+    font-size: 0.875rem;
+}
+
+.badge {
+    font-weight: 500;
+}
+
+.btn-group-sm > .btn {
+    padding: 0.25rem 0.5rem;
+}
+
+/* Animação de loading */
+.spinner-border {
+    width: 3rem;
+    height: 3rem;
+}
+
+/* Tabelas responsivas */
+.table-responsive {
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+/* Destaque para melhor modelo */
+.table-success {
+    --bs-table-bg: rgba(25, 135, 84, 0.1);
+}
+
+/* Cards de estatísticas */
+.card.text-center .card-body h3 {
+    font-size: 2rem;
+    margin-bottom: 0;
+}
+
+/* Form checks em grid */
+.form-check {
+    margin-bottom: 0.5rem;
+}
+
+/* Breadcrumb */
+.breadcrumb {
+    background: transparent;
+    padding: 0;
+    margin-bottom: 0.5rem;
+}
+
+/* Code blocks */
+code {
+    background-color: #f8f9fa;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    display: block;
+    word-break: break-all;
+}
+
+/* Alerts */
+.alert {
+    border: none;
+}
+
+/* Footer */
+footer {
+    border-top: 1px solid #dee2e6;
+}

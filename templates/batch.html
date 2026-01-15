@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+
+{% block title %}Predição Batch - {{ experiment.name }} - AutoML Platform{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/">Home</a></li>
+                <li class="breadcrumb-item"><a href="/experiments">Experimentos</a></li>
+                <li class="breadcrumb-item"><a href="/experiments/{{ experiment.id }}">{{ experiment.name }}</a></li>
+                <li class="breadcrumb-item active">Predição Batch</li>
+            </ol>
+        </nav>
+        <h2><i class="bi bi-file-earmark-spreadsheet"></i> Predição em Batch</h2>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-upload"></i> Upload de Dados para Predição
+            </div>
+            <div class="card-body">
+                <form id="batchForm" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label for="file" class="form-label">Arquivo de Dados</label>
+                        <input type="file" class="form-control" id="file" name="file" accept=".csv,.xlsx,.xls" required>
+                        <div class="form-text">Formatos aceitos: CSV, XLSX, XLS</div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary" id="submitBtn">
+                        <i class="bi bi-play-circle"></i> Executar Predições
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Resultado das Predições -->
+        <div class="card mt-4" id="resultCard" style="display: none;">
+            <div class="card-header bg-success text-white">
+                <i class="bi bi-check-circle"></i> Predições Concluídas
+            </div>
+            <div class="card-body">
+                <p>As predições foram realizadas com sucesso!</p>
+                <div class="d-grid gap-2 d-md-flex">
+                    <a href="#" id="downloadLink" class="btn btn-success">
+                        <i class="bi bi-download"></i> Download Resultados (CSV)
+                    </a>
+                </div>
+
+                <hr>
+
+                <h6>Preview dos Resultados</h6>
+                <div class="table-responsive">
+                    <table class="table table-sm table-striped" id="previewTable">
+                        <thead id="previewHead"></thead>
+                        <tbody id="previewBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card bg-light">
+            <div class="card-body">
+                <h5><i class="bi bi-info-circle"></i> Informações</h5>
+
+                <p><strong>Modelo:</strong></p>
+                <p>{{ model.algorithm_name }}</p>
+
+                <p><strong>Experimento:</strong></p>
+                <p>{{ experiment.name }}</p>
+
+                <p><strong>Tipo:</strong></p>
+                <p>{{ experiment.problem_type.value }}</p>
+
+                <hr>
+
+                <p><strong>Colunas Utilizadas no Modelo:</strong></p>
+                <ul class="small">
+                    {% for col in experiment.feature_columns %}
+                        <li>{{ col }}</li>
+                    {% endfor %}
+                </ul>
+
+                <div class="alert alert-info small mt-3">
+                    <i class="bi bi-info-circle"></i>
+                    <strong>Dica:</strong> Colunas extras (ex: IDs, nomes) serão preservadas no resultado.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('batchForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    const submitBtn = document.getElementById('submitBtn');
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Processando...';
+
+    const formData = new FormData(this);
+
+    try {
+        const response = await fetch('/api/models/{{ model.id }}/predict-batch', {
+            method: 'POST',
+            body: formData
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            document.getElementById('resultCard').style.display = 'block';
+            document.getElementById('downloadLink').href = '/api/batch-results/' + data.result_id + '/download';
+
+            // Monta preview da tabela
+            const previewHead = document.getElementById('previewHead');
+            const previewBody = document.getElementById('previewBody');
+
+            previewHead.innerHTML = '';
+            previewBody.innerHTML = '';
+
+            if (data.preview && data.preview.length > 0) {
+                // Header
+                const headerRow = document.createElement('tr');
+                Object.keys(data.preview[0]).forEach(key => {
+                    const th = document.createElement('th');
+                    th.textContent = key;
+                    headerRow.appendChild(th);
+                });
+                previewHead.appendChild(headerRow);
+
+                // Body
+                data.preview.forEach(row => {
+                    const tr = document.createElement('tr');
+                    Object.values(row).forEach(val => {
+                        const td = document.createElement('td');
+                        td.textContent = val !== null ? val : '';
+                        tr.appendChild(td);
+                    });
+                    previewBody.appendChild(tr);
+                });
+            }
+
+            submitBtn.innerHTML = '<i class="bi bi-check"></i> Concluído';
+        } else {
+            alert('Erro: ' + (data.detail || 'Erro ao processar predições'));
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="bi bi-play-circle"></i> Executar Predições';
+        }
+    } catch (error) {
+        alert('Erro de conexão: ' + error.message);
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="bi bi-play-circle"></i> Executar Predições';
+    }
+});
+</script>
+{% endblock %}

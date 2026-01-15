@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+
+{% block title %}{{ dataset.name }} - AutoML Platform{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/">Home</a></li>
+                <li class="breadcrumb-item"><a href="/datasets">Datasets</a></li>
+                <li class="breadcrumb-item active">{{ dataset.name }}</li>
+            </ol>
+        </nav>
+        <div class="d-flex justify-content-between align-items-center">
+            <h2><i class="bi bi-database"></i> {{ dataset.name }}</h2>
+            <a href="/experiments/new?dataset_id={{ dataset.id }}" class="btn btn-success">
+                <i class="bi bi-play-circle"></i> Criar Experimento
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h3 class="text-primary">{{ dataset.num_rows }}</h3>
+                <small class="text-muted">Linhas</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h3 class="text-success">{{ dataset.num_columns }}</h3>
+                <small class="text-muted">Colunas</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h3 class="text-info">{{ numeric_cols }}</h3>
+                <small class="text-muted">Numéricas</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h3 class="text-warning">{{ categorical_cols }}</h3>
+                <small class="text-muted">Categóricas</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-table"></i> Informações das Colunas
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover">
+                        <thead>
+                            <tr>
+                                <th>Coluna</th>
+                                <th>Tipo</th>
+                                <th>Valores Únicos</th>
+                                <th>Nulos</th>
+                                <th>% Nulos</th>
+                                <th>Amostra</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for col in columns_info %}
+                            <tr>
+                                <td><strong>{{ col.name }}</strong></td>
+                                <td>
+                                    <span class="badge bg-{{ 'primary' if 'int' in col.dtype or 'float' in col.dtype else 'warning' }}">
+                                        {{ col.dtype }}
+                                    </span>
+                                </td>
+                                <td>{{ col.unique_count }}</td>
+                                <td>{{ col.null_count }}</td>
+                                <td>
+                                    {% if col.null_percentage > 0 %}
+                                        <span class="text-{{ 'danger' if col.null_percentage > 20 else 'warning' }}">
+                                            {{ "%.1f"|format(col.null_percentage) }}%
+                                        </span>
+                                    {% else %}
+                                        <span class="text-success">0%</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-muted small">{{ col.sample_values[:3] | join(', ') }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-eye"></i> Preview dos Dados (primeiras 10 linhas)
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm table-striped">
+                        <thead>
+                            <tr>
+                                {% for col in columns_info %}
+                                    <th>{{ col.name }}</th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in preview_data %}
+                            <tr>
+                                {% for col in columns_info %}
+                                    <td>{{ row[col.name] if row[col.name] is not none else '-' }}</td>
+                                {% endfor %}
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

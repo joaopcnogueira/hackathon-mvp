@@ -1,0 +1,245 @@
+{% extends "base.html" %}
+
+{% block title %}Novo Experimento - AutoML Platform{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/">Home</a></li>
+                <li class="breadcrumb-item"><a href="/experiments">Experimentos</a></li>
+                <li class="breadcrumb-item active">Novo</li>
+            </ol>
+        </nav>
+        <h2><i class="bi bi-plus-circle"></i> Novo Experimento</h2>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-body">
+                <form id="experimentForm">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Nome do Experimento</label>
+                        <input type="text" class="form-control" id="name" name="name" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="dataset_id" class="form-label">Dataset</label>
+                        <select class="form-select" id="dataset_id" name="dataset_id" required>
+                            <option value="">Selecione um dataset...</option>
+                            {% for ds in datasets %}
+                                <option value="{{ ds.id }}" {{ 'selected' if selected_dataset_id == ds.id else '' }}>
+                                    {{ ds.name }} ({{ ds.num_rows }} linhas, {{ ds.num_columns }} colunas)
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div id="columnsSection" style="display: none;">
+                        <div class="mb-3">
+                            <label for="target_column" class="form-label">Coluna Target (variável a prever)</label>
+                            <select class="form-select" id="target_column" name="target_column" required>
+                                <option value="">Selecione...</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Tipo de Problema</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="problem_type" id="classification" value="classification" checked>
+                                <label class="form-check-label" for="classification">
+                                    <i class="bi bi-diagram-3"></i> Classificação
+                                    <small class="text-muted">(prever categorias)</small>
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="problem_type" id="regression" value="regression">
+                                <label class="form-check-label" for="regression">
+                                    <i class="bi bi-graph-up-arrow"></i> Regressão
+                                    <small class="text-muted">(prever valores numéricos)</small>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Features (colunas de entrada)</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="selectAll">
+                                <label class="form-check-label" for="selectAll"><strong>Selecionar Todas</strong></label>
+                            </div>
+                            <hr>
+                            <div id="featuresContainer" class="row"></div>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-success btn-lg" id="submitBtn" disabled>
+                        <i class="bi bi-play-circle"></i> Iniciar Treinamento
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card bg-light">
+            <div class="card-body">
+                <h5><i class="bi bi-info-circle"></i> Sobre o Treinamento</h5>
+                <p class="small">O sistema irá:</p>
+                <ol class="small">
+                    <li>Pré-processar os dados automaticamente</li>
+                    <li>Treinar 3 algoritmos diferentes</li>
+                    <li>Avaliar e ranquear os modelos</li>
+                </ol>
+
+                <hr>
+
+                <h6>Classificação</h6>
+                <ul class="small mb-3">
+                    <li>Logistic Regression</li>
+                    <li>Random Forest</li>
+                    <li>Gradient Boosting</li>
+                </ul>
+
+                <h6>Regressão</h6>
+                <ul class="small mb-0">
+                    <li>Linear Regression</li>
+                    <li>Random Forest</li>
+                    <li>Gradient Boosting</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let datasetColumns = [];
+
+document.getElementById('dataset_id').addEventListener('change', async function() {
+    const datasetId = this.value;
+    const columnsSection = document.getElementById('columnsSection');
+    const submitBtn = document.getElementById('submitBtn');
+
+    if (!datasetId) {
+        columnsSection.style.display = 'none';
+        submitBtn.disabled = true;
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/datasets/' + datasetId);
+        const data = await response.json();
+
+        datasetColumns = data.columns_info;
+        updateColumnsUI();
+        columnsSection.style.display = 'block';
+        submitBtn.disabled = false;
+    } catch (error) {
+        alert('Erro ao carregar dataset: ' + error.message);
+    }
+});
+
+function updateColumnsUI() {
+    const targetSelect = document.getElementById('target_column');
+    const featuresContainer = document.getElementById('featuresContainer');
+
+    // Limpa seleções anteriores
+    targetSelect.innerHTML = '<option value="">Selecione...</option>';
+    featuresContainer.innerHTML = '';
+
+    datasetColumns.forEach(col => {
+        // Adiciona ao select de target
+        const option = document.createElement('option');
+        option.value = col.name;
+        option.textContent = `${col.name} (${col.dtype})`;
+        targetSelect.appendChild(option);
+
+        // Adiciona checkbox de feature
+        const div = document.createElement('div');
+        div.className = 'col-md-6';
+        div.innerHTML = `
+            <div class="form-check">
+                <input class="form-check-input feature-check" type="checkbox" value="${col.name}" id="feature_${col.name}" checked>
+                <label class="form-check-label" for="feature_${col.name}">
+                    ${col.name}
+                    <small class="text-muted">(${col.dtype})</small>
+                </label>
+            </div>
+        `;
+        featuresContainer.appendChild(div);
+    });
+}
+
+document.getElementById('selectAll').addEventListener('change', function() {
+    document.querySelectorAll('.feature-check').forEach(cb => {
+        cb.checked = this.checked;
+    });
+});
+
+document.getElementById('target_column').addEventListener('change', function() {
+    const target = this.value;
+    document.querySelectorAll('.feature-check').forEach(cb => {
+        if (cb.value === target) {
+            cb.checked = false;
+            cb.disabled = true;
+        } else {
+            cb.disabled = false;
+        }
+    });
+});
+
+document.getElementById('experimentForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    const submitBtn = document.getElementById('submitBtn');
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Processando...';
+
+    const selectedFeatures = [];
+    document.querySelectorAll('.feature-check:checked').forEach(cb => {
+        selectedFeatures.push(cb.value);
+    });
+
+    const data = {
+        name: document.getElementById('name').value,
+        dataset_id: parseInt(document.getElementById('dataset_id').value),
+        target_column: document.getElementById('target_column').value,
+        feature_columns: selectedFeatures,
+        problem_type: document.querySelector('input[name="problem_type"]:checked').value
+    };
+
+    try {
+        const response = await fetch('/api/experiments', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+            window.location.href = '/experiments/' + result.id;
+        } else {
+            alert('Erro: ' + (result.detail || 'Erro ao criar experimento'));
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="bi bi-play-circle"></i> Iniciar Treinamento';
+        }
+    } catch (error) {
+        alert('Erro de conexão: ' + error.message);
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="bi bi-play-circle"></i> Iniciar Treinamento';
+    }
+});
+
+// Carrega automaticamente se dataset_id veio na URL
+{% if selected_dataset_id %}
+document.getElementById('dataset_id').dispatchEvent(new Event('change'));
+{% endif %}
+</script>
+{% endblock %}

@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+
+{% block title %}Experimentos - AutoML Platform{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <div class="d-flex justify-content-between align-items-center">
+            <h2><i class="bi bi-graph-up"></i> Experimentos</h2>
+            <a href="/experiments/new" class="btn btn-success">
+                <i class="bi bi-plus-circle"></i> Novo Experimento
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col">
+        {% if experiments %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Nome</th>
+                            <th>Dataset</th>
+                            <th>Tipo</th>
+                            <th>Status</th>
+                            <th>Melhor Modelo</th>
+                            <th>Criado em</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for exp in experiments %}
+                        <tr>
+                            <td>
+                                <a href="/experiments/{{ exp.id }}">
+                                    <strong>{{ exp.name }}</strong>
+                                </a>
+                            </td>
+                            <td class="text-muted">{{ exp.dataset.name if exp.dataset else '-' }}</td>
+                            <td>
+                                <span class="badge bg-{{ 'info' if exp.problem_type.value == 'classification' else 'success' }}">
+                                    {{ exp.problem_type.value }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if exp.status.value == 'completed' %}
+                                    <span class="badge bg-success"><i class="bi bi-check-circle"></i> Concluído</span>
+                                {% elif exp.status.value == 'training' %}
+                                    <span class="badge bg-warning"><i class="bi bi-hourglass-split"></i> Treinando</span>
+                                {% elif exp.status.value == 'preprocessing' %}
+                                    <span class="badge bg-info"><i class="bi bi-gear"></i> Processando</span>
+                                {% elif exp.status.value == 'failed' %}
+                                    <span class="badge bg-danger"><i class="bi bi-x-circle"></i> Falhou</span>
+                                {% else %}
+                                    <span class="badge bg-secondary"><i class="bi bi-clock"></i> Pendente</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if exp.trained_models %}
+                                    {% set best = exp.trained_models | selectattr('rank', 'equalto', 1) | first %}
+                                    {% if best %}
+                                        {{ best.algorithm_name }}
+                                        <small class="text-muted">({{ "%.4f"|format(best.primary_metric_value) }})</small>
+                                    {% endif %}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td>{{ exp.created_at.strftime('%d/%m/%Y %H:%M') }}</td>
+                            <td>
+                                <a href="/experiments/{{ exp.id }}" class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                <button class="btn btn-sm btn-outline-danger" onclick="deleteExperiment({{ exp.id }})">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="text-center py-5">
+                <i class="bi bi-bar-chart-line display-1 text-muted"></i>
+                <h4 class="mt-3">Nenhum experimento encontrado</h4>
+                <p class="text-muted">Crie seu primeiro experimento para começar a treinar modelos.</p>
+                <a href="/experiments/new" class="btn btn-success">
+                    <i class="bi bi-plus-circle"></i> Novo Experimento
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+async function deleteExperiment(id) {
+    if (!confirm('Tem certeza que deseja excluir este experimento e todos os modelos associados?')) return;
+
+    try {
+        const response = await fetch('/api/experiments/' + id, {
+            method: 'DELETE'
+        });
+
+        if (response.ok) {
+            location.reload();
+        } else {
+            const data = await response.json();
+            alert('Erro: ' + (data.detail || 'Erro ao excluir'));
+        }
+    } catch (error) {
+        alert('Erro de conexão: ' + error.message);
+    }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,447 @@
+{% extends "base.html" %}
+
+{% block title %}{{ experiment.name }} - AutoML Platform{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/">Home</a></li>
+                <li class="breadcrumb-item"><a href="/experiments">Experimentos</a></li>
+                <li class="breadcrumb-item active">{{ experiment.name }}</li>
+            </ol>
+        </nav>
+        <div class="d-flex justify-content-between align-items-center">
+            <h2><i class="bi bi-graph-up"></i> {{ experiment.name }}</h2>
+            <span class="badge bg-{{ 'success' if experiment.status.value == 'completed' else 'warning' if experiment.status.value in ['training', 'preprocessing'] else 'danger' if experiment.status.value == 'failed' else 'secondary' }} fs-6">
+                {{ experiment.status.value }}
+            </span>
+        </div>
+    </div>
+</div>
+
+<!-- Informações do Experimento -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <small class="text-muted">Dataset</small>
+                <h6>{{ experiment.dataset.name if experiment.dataset else '-' }}</h6>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <small class="text-muted">Target</small>
+                <h6>{{ experiment.target_column }}</h6>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <small class="text-muted">Tipo</small>
+                <h6>{{ experiment.problem_type.value }}</h6>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <small class="text-muted">Features</small>
+                <h6>{{ experiment.feature_columns | length }}</h6>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if experiment.status.value in ['pending', 'preprocessing', 'training'] %}
+<!-- Status de Processamento -->
+<div class="row mb-4">
+    <div class="col">
+        <div class="card">
+            <div class="card-body text-center py-5">
+                <div class="spinner-border text-primary mb-3" role="status">
+                    <span class="visually-hidden">Processando...</span>
+                </div>
+                <h4>Processando...</h4>
+                <p class="text-muted">
+                    {% if experiment.status.value == 'preprocessing' %}
+                        Realizando pré-processamento dos dados...
+                    {% elif experiment.status.value == 'training' %}
+                        Treinando modelos de machine learning...
+                    {% else %}
+                        Aguardando início do processamento...
+                    {% endif %}
+                </p>
+                <small class="text-muted">Esta página será atualizada automaticamente.</small>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+setTimeout(() => location.reload(), 3000);
+</script>
+{% endif %}
+
+{% if experiment.preprocessing_info %}
+<!-- Informações de Pré-processamento -->
+<div class="row mb-4">
+    <div class="col">
+        <div class="card">
+            <div class="card-header" data-bs-toggle="collapse" data-bs-target="#preprocessingCollapse" style="cursor: pointer;">
+                <i class="bi bi-gear"></i> Pré-processamento Aplicado
+                <i class="bi bi-chevron-down float-end"></i>
+            </div>
+            <div class="collapse show" id="preprocessingCollapse">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Transformações Aplicadas</h6>
+                            <ul class="list-unstyled">
+                                {% for transform in experiment.preprocessing_info.get('transformations', []) %}
+                                    <li>
+                                        <i class="bi bi-check-circle text-success"></i>
+                                        {{ transform }}
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Estatísticas</h6>
+                            <table class="table table-sm">
+                                <tr>
+                                    <td>Linhas originais</td>
+                                    <td><strong>{{ experiment.preprocessing_info.get('original_rows', '-') }}</strong></td>
+                                </tr>
+                                <tr>
+                                    <td>Linhas após processamento</td>
+                                    <td><strong>{{ experiment.preprocessing_info.get('processed_rows', '-') }}</strong></td>
+                                </tr>
+                                <tr>
+                                    <td>Colunas processadas</td>
+                                    <td><strong>{{ experiment.preprocessing_info.get('num_features', '-') }}</strong></td>
+                                </tr>
+                                <tr>
+                                    <td>Valores nulos tratados</td>
+                                    <td><strong>{{ experiment.preprocessing_info.get('nulls_filled', '-') }}</strong></td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if experiment.trained_models %}
+<!-- Ranking de Modelos -->
+<div class="row mb-4">
+    <div class="col">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-trophy"></i> Ranking de Modelos
+                <small class="text-muted ms-2">
+                    (ordenado por {{ 'AUC' if experiment.problem_type.value == 'classification' else 'RMSE' }})
+                </small>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Algoritmo</th>
+                                {% if experiment.problem_type.value == 'classification' %}
+                                    <th>AUC</th>
+                                    <th>Accuracy</th>
+                                    <th>Precision</th>
+                                    <th>Recall</th>
+                                    <th>F1</th>
+                                {% else %}
+                                    <th>RMSE</th>
+                                    <th>MAE</th>
+                                    <th>R²</th>
+                                    <th>MAPE</th>
+                                {% endif %}
+                                <th>Deploy</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for model in experiment.trained_models | sort(attribute='rank') %}
+                            <tr class="{{ 'table-success' if model.rank == 1 else '' }}">
+                                <td>
+                                    {% if model.rank == 1 %}
+                                        <i class="bi bi-trophy-fill text-warning"></i>
+                                    {% else %}
+                                        {{ model.rank }}
+                                    {% endif %}
+                                </td>
+                                <td><strong>{{ model.algorithm_name }}</strong></td>
+                                {% if experiment.problem_type.value == 'classification' %}
+                                    <td><strong>{{ "%.4f"|format(model.metrics.get('auc', 0)) }}</strong></td>
+                                    <td>{{ "%.4f"|format(model.metrics.get('accuracy', 0)) }}</td>
+                                    <td>{{ "%.4f"|format(model.metrics.get('precision', 0)) }}</td>
+                                    <td>{{ "%.4f"|format(model.metrics.get('recall', 0)) }}</td>
+                                    <td>{{ "%.4f"|format(model.metrics.get('f1', 0)) }}</td>
+                                {% else %}
+                                    <td><strong>{{ "%.4f"|format(model.metrics.get('rmse', 0)) }}</strong></td>
+                                    <td>{{ "%.4f"|format(model.metrics.get('mae', 0)) }}</td>
+                                    <td>{{ "%.4f"|format(model.metrics.get('r2', 0)) }}</td>
+                                    <td>{{ "%.2f"|format(model.metrics.get('mape', 0)) }}%</td>
+                                {% endif %}
+                                <td>
+                                    {% if model.is_deployed_api %}
+                                        <span class="badge bg-success">API</span>
+                                    {% endif %}
+                                    {% if model.is_deployed_batch %}
+                                        <span class="badge bg-info">Batch</span>
+                                    {% endif %}
+                                    {% if not model.is_deployed_api and not model.is_deployed_batch %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="/api/models/{{ model.id }}/download" class="btn btn-outline-secondary" title="Download">
+                                            <i class="bi bi-download"></i>
+                                        </a>
+                                        <button class="btn btn-outline-primary" onclick="deployModel({{ model.id }})" title="Deploy">
+                                            <i class="bi bi-rocket"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Ações de Deploy -->
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-cloud"></i> Deploy via API
+            </div>
+            <div class="card-body">
+                <p>Disponibilize o modelo como uma API REST.</p>
+                {% set deployed_api = experiment.trained_models | selectattr('is_deployed_api') | first %}
+                {% if deployed_api %}
+                    <div class="alert alert-success">
+                        <strong>{{ deployed_api.algorithm_name }}</strong> está deployado!
+                    </div>
+                    <p><strong>Endpoint:</strong></p>
+                    <code>POST /api/v1/predict/{{ deployed_api.id }}</code>
+                    <p class="mt-2"><a href="/docs#/predictions" target="_blank">Ver documentação da API</a></p>
+
+                    <hr>
+                    <h6><i class="bi bi-play-circle"></i> Testar Predição</h6>
+                    <form id="apiPredictionForm">
+                        <input type="hidden" id="apiModelId" value="{{ deployed_api.id }}">
+                        <div class="row">
+                            {% for feature in experiment.feature_columns %}
+                            <div class="col-md-6 mb-2">
+                                <label class="form-label small">{{ feature }}</label>
+                                <input type="text" class="form-control form-control-sm"
+                                       name="{{ feature }}"
+                                       placeholder="{{ feature }}"
+                                       data-feature="{{ feature }}">
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <button type="button" class="btn btn-primary btn-sm mt-2" onclick="testApiPrediction()">
+                            <i class="bi bi-lightning"></i> Fazer Predição
+                        </button>
+                    </form>
+                    <div id="apiPredictionResult" class="mt-3" style="display: none;">
+                        <div class="alert alert-info">
+                            <strong>Resultado:</strong>
+                            <span id="apiPredictionValue"></span>
+                        </div>
+                        <div id="apiPredictionProbabilities" style="display: none;">
+                            <small class="text-muted">Probabilidades:</small>
+                            <div id="apiProbabilitiesContent"></div>
+                        </div>
+                    </div>
+                {% else %}
+                    <p class="text-muted">Nenhum modelo deployado via API ainda.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-file-earmark-spreadsheet"></i> Predição em Batch
+            </div>
+            <div class="card-body">
+                <p>Faça upload de um arquivo para predição em lote.</p>
+                {% set deployed_batch = experiment.trained_models | selectattr('is_deployed_batch') | first %}
+                {% if deployed_batch %}
+                    <div class="alert alert-success">
+                        <strong>{{ deployed_batch.algorithm_name }}</strong> disponível para batch!
+                    </div>
+                    <a href="/experiments/{{ experiment.id }}/batch" class="btn btn-info">
+                        <i class="bi bi-upload"></i> Fazer Predição Batch
+                    </a>
+                {% else %}
+                    <p class="text-muted">Nenhum modelo configurado para batch ainda.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Modal de Deploy -->
+<div class="modal fade" id="deployModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Configurar Deploy</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="deployForm">
+                    <input type="hidden" id="deployModelId">
+                    <div class="mb-3">
+                        <label class="form-label">Opções de Deploy</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="deployApi" checked>
+                            <label class="form-check-label" for="deployApi">
+                                <i class="bi bi-cloud"></i> API REST
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="deployBatch" checked>
+                            <label class="form-check-label" for="deployBatch">
+                                <i class="bi bi-file-earmark-spreadsheet"></i> Predição Batch
+                            </label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="confirmDeploy()">
+                    <i class="bi bi-rocket"></i> Confirmar Deploy
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function deployModel(modelId) {
+    document.getElementById('deployModelId').value = modelId;
+    new bootstrap.Modal(document.getElementById('deployModal')).show();
+}
+
+async function confirmDeploy() {
+    const modelId = document.getElementById('deployModelId').value;
+    const deployApi = document.getElementById('deployApi').checked;
+    const deployBatch = document.getElementById('deployBatch').checked;
+
+    try {
+        const response = await fetch('/api/models/' + modelId + '/deploy', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                deploy_api: deployApi,
+                deploy_batch: deployBatch
+            })
+        });
+
+        if (response.ok) {
+            location.reload();
+        } else {
+            const data = await response.json();
+            alert('Erro: ' + (data.detail || 'Erro ao fazer deploy'));
+        }
+    } catch (error) {
+        alert('Erro de conexão: ' + error.message);
+    }
+}
+
+async function testApiPrediction() {
+    const modelId = document.getElementById('apiModelId').value;
+    const form = document.getElementById('apiPredictionForm');
+    const inputs = form.querySelectorAll('input[data-feature]');
+
+    // Coleta os valores do formulário
+    const data = {};
+    inputs.forEach(input => {
+        const feature = input.dataset.feature;
+        let value = input.value.trim();
+
+        // Tenta converter para número se possível
+        if (value !== '' && !isNaN(value)) {
+            value = parseFloat(value);
+        }
+
+        data[feature] = value;
+    });
+
+    try {
+        const response = await fetch('/api/v1/predict/' + modelId, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                data: [data],
+                return_probabilities: true
+            })
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+            // Mostra o resultado
+            document.getElementById('apiPredictionResult').style.display = 'block';
+            document.getElementById('apiPredictionValue').textContent = result.predictions[0];
+
+            // Mostra probabilidades se disponíveis
+            if (result.probabilities && result.probabilities.length > 0) {
+                document.getElementById('apiPredictionProbabilities').style.display = 'block';
+                const probContent = document.getElementById('apiProbabilitiesContent');
+                probContent.innerHTML = '';
+
+                const probs = result.probabilities[0];
+                for (const [cls, prob] of Object.entries(probs)) {
+                    const percentage = (prob * 100).toFixed(2);
+                    probContent.innerHTML += `
+                        <div class="d-flex align-items-center mb-1">
+                            <span class="me-2" style="width: 60px;">${cls}:</span>
+                            <div class="progress flex-grow-1" style="height: 20px;">
+                                <div class="progress-bar" style="width: ${percentage}%">${percentage}%</div>
+                            </div>
+                        </div>
+                    `;
+                }
+            } else {
+                document.getElementById('apiPredictionProbabilities').style.display = 'none';
+            }
+        } else {
+            alert('Erro: ' + (result.detail || 'Erro ao fazer predição'));
+        }
+    } catch (error) {
+        alert('Erro de conexão: ' + error.message);
+    }
+}
+</script>
+{% endblock %}

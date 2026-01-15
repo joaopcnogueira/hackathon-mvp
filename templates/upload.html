@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+
+{% block title %}Upload Dataset - AutoML Platform{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/">Home</a></li>
+                <li class="breadcrumb-item"><a href="/datasets">Datasets</a></li>
+                <li class="breadcrumb-item active">Upload</li>
+            </ol>
+        </nav>
+        <h2><i class="bi bi-cloud-upload"></i> Upload de Dataset</h2>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-body">
+                <form id="uploadForm" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Nome do Dataset</label>
+                        <input type="text" class="form-control" id="name" name="name" required>
+                        <div class="form-text">Um nome descritivo para identificar o dataset.</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="file" class="form-label">Arquivo</label>
+                        <input type="file" class="form-control" id="file" name="file" accept=".csv,.xlsx,.xls" required>
+                        <div class="form-text">Formatos aceitos: CSV, XLSX, XLS (máx. 100MB)</div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary" id="submitBtn">
+                        <i class="bi bi-upload"></i> Fazer Upload
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card bg-light">
+            <div class="card-body">
+                <h5><i class="bi bi-info-circle"></i> Dicas</h5>
+                <ul class="mb-0">
+                    <li>Use CSV para melhor compatibilidade</li>
+                    <li>A primeira linha deve conter os nomes das colunas</li>
+                    <li>Evite caracteres especiais nos nomes</li>
+                    <li>Verifique se os dados estão bem formatados</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="previewSection" class="row mt-4" style="display: none;">
+    <div class="col">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-eye"></i> Preview do Dataset
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm table-striped" id="previewTable">
+                        <thead id="previewHead"></thead>
+                        <tbody id="previewBody"></tbody>
+                    </table>
+                </div>
+                <div id="datasetInfo" class="mt-3"></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('uploadForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    const submitBtn = document.getElementById('submitBtn');
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Enviando...';
+
+    const formData = new FormData(this);
+
+    try {
+        const response = await fetch('/api/datasets/upload', {
+            method: 'POST',
+            body: formData
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            window.location.href = '/datasets/' + data.id;
+        } else {
+            alert('Erro: ' + (data.detail || 'Erro ao fazer upload'));
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="bi bi-upload"></i> Fazer Upload';
+        }
+    } catch (error) {
+        alert('Erro de conexão: ' + error.message);
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="bi bi-upload"></i> Fazer Upload';
+    }
+});
+</script>
+{% endblock %}
