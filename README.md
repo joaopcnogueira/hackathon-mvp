@@ -1,5 +1,12 @@
 # AutoML Platform
 
+![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=flat&logo=python&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-009688?style=flat&logo=fastapi&logoColor=white)
+![scikit-learn](https://img.shields.io/badge/scikit--learn-1.5+-F7931E?style=flat&logo=scikit-learn&logoColor=white)
+![Bootstrap](https://img.shields.io/badge/Bootstrap-5-7952B3?style=flat&logo=bootstrap&logoColor=white)
+![SQLite](https://img.shields.io/badge/SQLite-003B57?style=flat&logo=sqlite&logoColor=white)
+![License](https://img.shields.io/badge/License-MIT-green?style=flat)
+
 Plataforma web para treinamento automático de modelos de Machine Learning. Permite upload de datasets, pré-processamento automático, treinamento de múltiplos algoritmos e deploy de modelos para predições via API ou batch.
 
 ## Funcionalidades
@@ -58,7 +65,7 @@ hackathon-mvp/
 
 ```bash
 # Clone o repositório
-git clone https://github.com/seu-usuario/hackathon-mvp.git
+git clone https://github.com/joaopcnogueira/hackathon-mvp.git
 cd hackathon-mvp
 
 # Instale as dependências com uv
