@@ -2,7 +2,7 @@
 Serviço de treinamento de modelos de machine learning.
 
 Treina múltiplos algoritmos e avalia usando métricas apropriadas
-para classificação (AUC) e regressão (RMSE).
+para classificação (AUC), regressão (RMSE) e séries temporais (MAPE).
 """
 import pandas as pd
 import numpy as np
@@ -11,7 +11,7 @@ import joblib
 from typing import Any
 
 from sklearn.model_selection import train_test_split, cross_val_score
-from sklearn.linear_model import LogisticRegression, LinearRegression
+from sklearn.linear_model import LogisticRegression, LinearRegression, Ridge
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.ensemble import GradientBoostingClassifier, GradientBoostingRegressor
 from sklearn.metrics import (
@@ -40,6 +40,12 @@ class TrainingService:
         "Gradient Boosting": GradientBoostingRegressor(n_estimators=100, random_state=42)
     }
 
+    TIME_SERIES_ALGORITHMS = {
+        "Ridge Regression": Ridge(alpha=1.0, random_state=42),
+        "Random Forest": RandomForestRegressor(n_estimators=100, random_state=42),
+        "Gradient Boosting": GradientBoostingRegressor(n_estimators=100, random_state=42)
+    }
+
     def train_all_models(
         self,
         X_train: pd.DataFrame,
@@ -48,7 +54,8 @@ class TrainingService:
         y_test: pd.Series,
         is_classification: bool,
         artifacts_dir: Path,
-        experiment_id: int
+        experiment_id: int,
+        problem_type: str = None
     ) -> list[dict[str, Any]]:
         """
         Treina todos os modelos para o tipo de problema especificado.
@@ -65,14 +72,17 @@ class TrainingService:
             is_classification: Se é classificação ou regressão.
             artifacts_dir: Diretório para salvar os modelos.
             experiment_id: ID do experimento.
+            problem_type: Tipo do problema (classification, regression, time_series).
 
         Retorna:
             Lista com informações de cada modelo treinado.
         """
-        algorithms = (
-            self.CLASSIFICATION_ALGORITHMS if is_classification
-            else self.REGRESSION_ALGORITHMS
-        )
+        if problem_type == "time_series":
+            algorithms = self.TIME_SERIES_ALGORITHMS
+        elif is_classification:
+            algorithms = self.CLASSIFICATION_ALGORITHMS
+        else:
+            algorithms = self.REGRESSION_ALGORITHMS
 
         results = []
 
@@ -86,12 +96,13 @@ class TrainingService:
                 y_test=y_test,
                 is_classification=is_classification,
                 artifacts_dir=artifacts_dir,
-                experiment_id=experiment_id
+                experiment_id=experiment_id,
+                problem_type=problem_type
             )
             results.append(model_result)
 
         # Calcula ranking baseado na métrica principal
-        results = self._calculate_ranking(results, is_classification)
+        results = self._calculate_ranking(results, is_classification, problem_type)
 
         return results
 
@@ -105,7 +116,8 @@ class TrainingService:
         y_test: pd.Series,
         is_classification: bool,
         artifacts_dir: Path,
-        experiment_id: int
+        experiment_id: int,
+        problem_type: str = None
     ) -> dict[str, Any]:
         """
         Treina um único modelo e calcula suas métricas.
@@ -118,6 +130,7 @@ class TrainingService:
             is_classification: Tipo de problema.
             artifacts_dir: Diretório de artefatos.
             experiment_id: ID do experimento.
+            problem_type: Tipo do problema (classification, regression, time_series).
 
         Retorna:
             Dicionário com informações do modelo treinado.
@@ -128,8 +141,12 @@ class TrainingService:
         # Faz predições
         y_pred = model.predict(X_test)
 
-        # Calcula métricas
-        if is_classification:
+        # Calcula métricas baseado no tipo de problema
+        if problem_type == "time_series":
+            metrics = self._calculate_timeseries_metrics(y_test, y_pred)
+            # Para MAPE, menor é melhor, então invertemos para ranking
+            primary_metric = -metrics.get("mape", float("inf"))
+        elif is_classification:
             metrics = self._calculate_classification_metrics(
                 model, X_test, y_test, y_pred
             )
@@ -243,20 +260,65 @@ class TrainingService:
 
         return metrics
 
+    def _calculate_timeseries_metrics(
+        self,
+        y_test: pd.Series,
+        y_pred: np.ndarray
+    ) -> dict[str, float]:
+        """
+        Calcula métricas específicas para séries temporais.
+
+        Retorna:
+            Dicionário com MAPE, RMSE, MAE, R² e SMAPE.
+        """
+        y_test_arr = np.array(y_test)
+        metrics = {}
+
+        # RMSE
+        metrics["rmse"] = float(np.sqrt(mean_squared_error(y_test_arr, y_pred)))
+
+        # MAE
+        metrics["mae"] = float(mean_absolute_error(y_test_arr, y_pred))
+
+        # R²
+        metrics["r2"] = float(r2_score(y_test_arr, y_pred))
+
+        # MAPE (Mean Absolute Percentage Error) - métrica principal
+        mask = y_test_arr != 0
+        if mask.any():
+            mape = np.mean(np.abs((y_test_arr[mask] - y_pred[mask]) / y_test_arr[mask])) * 100
+            metrics["mape"] = float(mape)
+        else:
+            metrics["mape"] = 0.0
+
+        # SMAPE (Symmetric Mean Absolute Percentage Error)
+        denominator = (np.abs(y_test_arr) + np.abs(y_pred)) / 2
+        mask = denominator != 0
+        if mask.any():
+            smape = np.mean(np.abs(y_test_arr[mask] - y_pred[mask]) / denominator[mask]) * 100
+            metrics["smape"] = float(smape)
+        else:
+            metrics["smape"] = 0.0
+
+        return metrics
+
     def _calculate_ranking(
         self,
         results: list[dict[str, Any]],
-        is_classification: bool
+        is_classification: bool,
+        problem_type: str = None
     ) -> list[dict[str, Any]]:
         """
         Calcula o ranking dos modelos baseado na métrica principal.
 
         Para classificação: maior AUC = melhor
         Para regressão: menor RMSE = melhor (já invertido)
+        Para séries temporais: menor MAPE = melhor (já invertido)
 
         Parâmetros:
             results: Lista de resultados dos modelos.
             is_classification: Tipo de problema.
+            problem_type: Tipo do problema (classification, regression, time_series).
 
         Retorna:
             Lista ordenada com ranking adicionado.
@@ -273,7 +335,10 @@ class TrainingService:
             result["rank"] = i + 1
 
             # Ajusta o valor da métrica principal para exibição
-            if not is_classification:
+            if problem_type == "time_series":
+                # Desfaz a inversão do MAPE
+                result["primary_metric_value"] = -result["primary_metric_value"]
+            elif not is_classification:
                 # Desfaz a inversão do RMSE
                 result["primary_metric_value"] = -result["primary_metric_value"]
 

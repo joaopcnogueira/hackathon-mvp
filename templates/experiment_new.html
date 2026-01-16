@@ -62,6 +62,68 @@
                                     <small class="text-muted">(prever valores numéricos)</small>
                                 </label>
                             </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="problem_type" id="time_series" value="time_series">
+                                <label class="form-check-label" for="time_series">
+                                    <i class="bi bi-calendar-range"></i> Séries Temporais
+                                    <small class="text-muted">(prever valores ao longo do tempo)</small>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Campos específicos para séries temporais -->
+                        <div id="timeSeriesFields" style="display: none;">
+                            <div class="mb-3">
+                                <label for="date_column" class="form-label">Coluna de Data</label>
+                                <select class="form-select" id="date_column" name="date_column">
+                                    <option value="">Selecione a coluna de data...</option>
+                                </select>
+                                <small class="text-muted">Coluna que contém as datas/timestamps da série</small>
+                            </div>
+                            <div class="mb-3">
+                                <label for="target_column_ts" class="form-label">Coluna de Valor (previsão)</label>
+                                <select class="form-select" id="target_column_ts" name="target_column_ts">
+                                    <option value="">Selecione a coluna a ser prevista...</option>
+                                </select>
+                                <small class="text-muted">Coluna numérica com os valores da série temporal</small>
+                            </div>
+                            <div class="mb-3">
+                                <label for="id_column" class="form-label">Coluna de ID (opcional)</label>
+                                <select class="form-select" id="id_column" name="id_column">
+                                    <option value="">Nenhuma (série única)</option>
+                                </select>
+                                <small class="text-muted">Use se tiver múltiplas séries (ex: id_produto, id_loja)</small>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="forecast_horizon" class="form-label">Horizonte de Previsão</label>
+                                        <input type="number" class="form-control" id="forecast_horizon"
+                                               name="forecast_horizon" min="1" max="365" value="7">
+                                        <small class="text-muted">Quantos períodos à frente deseja prever</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="frequency" class="form-label">Frequência da Série</label>
+                                        <select class="form-select" id="frequency" name="frequency">
+                                            <option value="">Auto-detectar</option>
+                                            <option value="H">Horária</option>
+                                            <option value="D">Diária</option>
+                                            <option value="W">Semanal</option>
+                                            <option value="M">Mensal</option>
+                                            <option value="Q">Trimestral</option>
+                                            <option value="Y">Anual</option>
+                                        </select>
+                                        <small class="text-muted">Deixe vazio para detecção automática</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="alert alert-info small" id="algorithmInfo">
+                                <i class="bi bi-info-circle"></i>
+                                <strong>Algoritmos:</strong>
+                                <span id="algorithmList">Selecione a coluna de ID para ver quais algoritmos serão usados</span>
+                            </div>
                         </div>
 
                         <div class="mb-3">
@@ -104,11 +166,31 @@
                 </ul>
 
                 <h6>Regressão</h6>
-                <ul class="small mb-0">
+                <ul class="small mb-3">
                     <li>Linear Regression</li>
                     <li>Random Forest</li>
                     <li>Gradient Boosting</li>
                 </ul>
+
+                <h6>Séries Temporais</h6>
+                <p class="small text-muted mb-2">A escolha de algoritmos depende dos dados:</p>
+                <div class="small">
+                    <strong>Série única (sem ID ou 1 ID):</strong>
+                    <ul class="mb-2">
+                        <li>Auto ARIMA</li>
+                        <li>Exponential Smoothing</li>
+                        <li>Prophet</li>
+                    </ul>
+                    <strong>Múltiplas séries (>1 ID):</strong>
+                    <ul class="mb-0">
+                        <li>Ridge Regression</li>
+                        <li>Random Forest</li>
+                        <li>Gradient Boosting</li>
+                    </ul>
+                </div>
+                <small class="text-muted d-block mt-2">
+                    <i class="bi bi-info-circle"></i> O sistema detecta automaticamente o tipo
+                </small>
             </div>
         </div>
     </div>
@@ -134,29 +216,58 @@ document.getElementById('dataset_id').addEventListener('change', async function(
         const response = await fetch('/api/datasets/' + datasetId);
         const data = await response.json();
 
-        datasetColumns = data.columns_info;
-        updateColumnsUI();
+        datasetColumns = data.columns_info || [];
+
+        // Mostra a seção primeiro para garantir visibilidade
         columnsSection.style.display = 'block';
         submitBtn.disabled = false;
+
+        // Depois popula os campos
+        updateColumnsUI();
     } catch (error) {
+        console.error('Erro ao carregar dataset:', error);
         alert('Erro ao carregar dataset: ' + error.message);
     }
 });
 
 function updateColumnsUI() {
     const targetSelect = document.getElementById('target_column');
+    const targetSelectTs = document.getElementById('target_column_ts');
+    const dateColumnSelect = document.getElementById('date_column');
+    const idColumnSelect = document.getElementById('id_column');
     const featuresContainer = document.getElementById('featuresContainer');
 
     // Limpa seleções anteriores
     targetSelect.innerHTML = '<option value="">Selecione...</option>';
+    targetSelectTs.innerHTML = '<option value="">Selecione a coluna a ser prevista...</option>';
+    dateColumnSelect.innerHTML = '<option value="">Selecione a coluna de data...</option>';
+    idColumnSelect.innerHTML = '<option value="">Nenhuma (série única)</option>';
     featuresContainer.innerHTML = '';
 
     datasetColumns.forEach(col => {
-        // Adiciona ao select de target
+        // Adiciona ao select de target (classificação/regressão)
         const option = document.createElement('option');
         option.value = col.name;
         option.textContent = `${col.name} (${col.dtype})`;
         targetSelect.appendChild(option);
+
+        // Adiciona ao select de target de séries temporais
+        const optionTs = document.createElement('option');
+        optionTs.value = col.name;
+        optionTs.textContent = `${col.name} (${col.dtype})`;
+        targetSelectTs.appendChild(optionTs);
+
+        // Adiciona ao select de date_column
+        const dateOption = document.createElement('option');
+        dateOption.value = col.name;
+        dateOption.textContent = `${col.name} (${col.dtype})`;
+        dateColumnSelect.appendChild(dateOption);
+
+        // Adiciona ao select de id_column
+        const idOption = document.createElement('option');
+        idOption.value = col.name;
+        idOption.textContent = `${col.name} (${col.dtype})`;
+        idColumnSelect.appendChild(idOption);
 
         // Adiciona checkbox de feature
         const div = document.createElement('div');
@@ -172,7 +283,60 @@ function updateColumnsUI() {
         `;
         featuresContainer.appendChild(div);
     });
+
+    // Atualiza info de algoritmos
+    updateAlgorithmInfo();
 }
+
+// Atualiza informação sobre quais algoritmos serão usados
+function updateAlgorithmInfo() {
+    const idColumn = document.getElementById('id_column').value;
+    const algorithmList = document.getElementById('algorithmList');
+
+    if (!idColumn) {
+        algorithmList.innerHTML = '<strong>Algoritmos clássicos</strong> serão usados: Auto ARIMA, Exponential Smoothing, Prophet';
+    } else {
+        algorithmList.innerHTML = 'O sistema detectará automaticamente baseado no número de IDs únicos. Se houver <strong>múltiplos IDs</strong>, usará algoritmos de ML.';
+    }
+}
+
+// Evento para atualizar info de algoritmos quando ID mudar
+document.getElementById('id_column').addEventListener('change', updateAlgorithmInfo);
+
+// Mostra/esconde campos de séries temporais baseado no tipo selecionado
+document.querySelectorAll('input[name="problem_type"]').forEach(radio => {
+    radio.addEventListener('change', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        try {
+            const timeSeriesFields = document.getElementById('timeSeriesFields');
+            const targetColumnElement = document.getElementById('target_column');
+            const featuresContainer = document.getElementById('featuresContainer');
+
+            // Verifica se os elementos existem antes de manipular
+            const targetColumnDiv = targetColumnElement ? targetColumnElement.closest('.mb-3') : null;
+            const featuresDiv = featuresContainer ? featuresContainer.closest('.mb-3') : null;
+
+            if (this.value === 'time_series') {
+                if (timeSeriesFields) timeSeriesFields.style.display = 'block';
+                if (targetColumnDiv) targetColumnDiv.style.display = 'none';
+                if (featuresDiv) featuresDiv.style.display = 'none';
+                // Remove required do target_column original (será usado target_column_ts)
+                if (targetColumnElement) targetColumnElement.removeAttribute('required');
+                updateAlgorithmInfo();
+            } else {
+                if (timeSeriesFields) timeSeriesFields.style.display = 'none';
+                if (targetColumnDiv) targetColumnDiv.style.display = 'block';
+                if (featuresDiv) featuresDiv.style.display = 'block';
+                // Restaura required no target_column original
+                if (targetColumnElement) targetColumnElement.setAttribute('required', '');
+            }
+        } catch (error) {
+            console.error('Erro ao mudar tipo de problema:', error);
+        }
+    });
+});
 
 document.getElementById('selectAll').addEventListener('change', function() {
     document.querySelectorAll('.feature-check').forEach(cb => {
@@ -199,18 +363,60 @@ document.getElementById('experimentForm').addEventListener('submit', async funct
     submitBtn.disabled = true;
     submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Processando...';
 
-    const selectedFeatures = [];
-    document.querySelectorAll('.feature-check:checked').forEach(cb => {
-        selectedFeatures.push(cb.value);
-    });
+    const problemType = document.querySelector('input[name="problem_type"]:checked').value;
+
+    let selectedFeatures = [];
+    if (problemType !== 'time_series') {
+        document.querySelectorAll('.feature-check:checked').forEach(cb => {
+            selectedFeatures.push(cb.value);
+        });
+    }
 
     const data = {
         name: document.getElementById('name').value,
         dataset_id: parseInt(document.getElementById('dataset_id').value),
         target_column: document.getElementById('target_column').value,
         feature_columns: selectedFeatures,
-        problem_type: document.querySelector('input[name="problem_type"]:checked').value
+        problem_type: problemType
     };
+
+    // Adiciona campos específicos para séries temporais
+    if (problemType === 'time_series') {
+        const dateColumn = document.getElementById('date_column').value;
+        const targetColumnTs = document.getElementById('target_column_ts').value;
+
+        if (!dateColumn) {
+            alert('Por favor, selecione a coluna de data.');
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="bi bi-play-circle"></i> Iniciar Treinamento';
+            return;
+        }
+
+        if (!targetColumnTs) {
+            alert('Por favor, selecione a coluna de valor para previsão.');
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="bi bi-play-circle"></i> Iniciar Treinamento';
+            return;
+        }
+
+        data.date_column = dateColumn;
+        data.target_column = targetColumnTs;
+
+        const idColumn = document.getElementById('id_column').value;
+        if (idColumn) {
+            data.id_column = idColumn;
+        }
+
+        const forecastHorizon = parseInt(document.getElementById('forecast_horizon').value);
+        if (forecastHorizon > 0) {
+            data.forecast_horizon = forecastHorizon;
+        }
+
+        const frequency = document.getElementById('frequency').value;
+        if (frequency) {
+            data.frequency = frequency;
+        }
+    }
 
     try {
         const response = await fetch('/api/experiments', {
@@ -237,9 +443,12 @@ document.getElementById('experimentForm').addEventListener('submit', async funct
     }
 });
 
-// Carrega automaticamente se dataset_id veio na URL
-{% if selected_dataset_id %}
-document.getElementById('dataset_id').dispatchEvent(new Event('change'));
-{% endif %}
+// Carrega automaticamente se houver dataset selecionado (URL ou autofill do navegador)
+document.addEventListener('DOMContentLoaded', function() {
+    const datasetSelect = document.getElementById('dataset_id');
+    if (datasetSelect.value) {
+        datasetSelect.dispatchEvent(new Event('change'));
+    }
+});
 </script>
 {% endblock %}

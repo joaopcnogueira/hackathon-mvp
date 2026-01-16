@@ -13,6 +13,7 @@ class ProblemType(enum.Enum):
     """Tipo de problema de machine learning."""
     CLASSIFICATION = "classification"
     REGRESSION = "regression"
+    TIME_SERIES = "time_series"
 
 
 class ExperimentStatus(enum.Enum):
@@ -41,6 +42,12 @@ class Experiment(Base):
 
     target_column = Column(String(255), nullable=False)
     feature_columns = Column(JSON, nullable=False)
+
+    # Campos específicos para séries temporais
+    date_column = Column(String(255), nullable=True)
+    id_column = Column(String(255), nullable=True)
+    forecast_horizon = Column(Integer, nullable=True)
+    frequency = Column(String(50), nullable=True)
 
     problem_type = Column(Enum(ProblemType), nullable=False)
     status = Column(Enum(ExperimentStatus), default=ExperimentStatus.PENDING)

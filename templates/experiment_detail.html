@@ -43,19 +43,94 @@
         <div class="card">
             <div class="card-body">
                 <small class="text-muted">Tipo</small>
-                <h6>{{ experiment.problem_type.value }}</h6>
+                <h6>
+                    {% if experiment.problem_type.value == 'classification' %}
+                        <i class="bi bi-diagram-3"></i> Classificação
+                    {% elif experiment.problem_type.value == 'regression' %}
+                        <i class="bi bi-graph-up-arrow"></i> Regressão
+                    {% else %}
+                        <i class="bi bi-calendar-range"></i> Séries Temporais
+                    {% endif %}
+                </h6>
             </div>
         </div>
     </div>
     <div class="col-md-3">
         <div class="card">
             <div class="card-body">
-                <small class="text-muted">Features</small>
-                <h6>{{ experiment.feature_columns | length }}</h6>
+                {% if experiment.problem_type.value == 'time_series' %}
+                    <small class="text-muted">Coluna de Data</small>
+                    <h6>{{ experiment.date_column }}</h6>
+                {% else %}
+                    <small class="text-muted">Features</small>
+                    <h6>{{ experiment.feature_columns | length }}</h6>
+                {% endif %}
             </div>
         </div>
     </div>
 </div>
+
+{% if experiment.problem_type.value == 'time_series' %}
+<div class="row mb-4">
+    {% if experiment.id_column %}
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <small class="text-muted">Coluna de ID</small>
+                <h6>{{ experiment.id_column }}</h6>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    {% if experiment.forecast_horizon %}
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <small class="text-muted">Horizonte de Previsão</small>
+                <h6>{{ experiment.forecast_horizon }} períodos</h6>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    {% if experiment.frequency %}
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <small class="text-muted">Frequência</small>
+                <h6>
+                    {% if experiment.frequency == 'H' %}Horária
+                    {% elif experiment.frequency == 'D' %}Diária
+                    {% elif experiment.frequency == 'W' %}Semanal
+                    {% elif experiment.frequency == 'M' %}Mensal
+                    {% elif experiment.frequency == 'Q' %}Trimestral
+                    {% elif experiment.frequency == 'Y' %}Anual
+                    {% else %}{{ experiment.frequency }}
+                    {% endif %}
+                </h6>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    {% if experiment.preprocessing_info and experiment.preprocessing_info.algorithm_type %}
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <small class="text-muted">Tipo de Algoritmo</small>
+                <h6>
+                    {% if experiment.preprocessing_info.algorithm_type == 'classical' %}
+                        <i class="bi bi-graph-up"></i> Clássico
+                        <small class="text-muted d-block">ARIMA, ETS, Prophet</small>
+                    {% else %}
+                        <i class="bi bi-cpu"></i> Machine Learning
+                        <small class="text-muted d-block">Ridge, RF, GB</small>
+                    {% endif %}
+                </h6>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endif %}
 
 {% if experiment.status.value in ['pending', 'preprocessing', 'training'] %}
 <!-- Status de Processamento -->
@@ -138,6 +213,57 @@ setTimeout(() => location.reload(), 3000);
 </div>
 {% endif %}
 
+{% if experiment.trained_models and experiment.problem_type.value == 'time_series' %}
+<!-- Gráfico de Previsões -->
+<div class="row mb-4">
+    <div class="col">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <div>
+                    <i class="bi bi-graph-up"></i> Gráfico de Previsões
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    {% if experiment.id_column %}
+                    <div class="d-flex align-items-center">
+                        <label for="seriesSelect" class="form-label mb-0 me-2 small">Série:</label>
+                        <select class="form-select form-select-sm" id="seriesSelect" style="width: auto;">
+                            <option value="">Carregando...</option>
+                        </select>
+                    </div>
+                    {% endif %}
+                    <div class="d-flex align-items-center">
+                        <label for="modelSelect" class="form-label mb-0 me-2 small">Modelo:</label>
+                        <select class="form-select form-select-sm" id="modelSelect" style="width: auto;">
+                            <option value="all">Todos os Modelos</option>
+                            {% for model in experiment.trained_models | sort(attribute='rank') %}
+                            <option value="{{ model.id }}">
+                                {{ model.algorithm_name }} ({{ "%.2f"|format(model.metrics.get('mape', 0)) }}% MAPE)
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div id="chartLoading" class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Carregando...</span>
+                    </div>
+                    <p class="mt-2 text-muted">Carregando gráfico de previsões...</p>
+                </div>
+                <div id="chartContainer" style="display: none;">
+                    <canvas id="forecastChart" height="300"></canvas>
+                </div>
+                <div id="chartError" class="alert alert-warning" style="display: none;">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    <span id="chartErrorMessage">Erro ao carregar gráfico</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
 {% if experiment.trained_models %}
 <!-- Ranking de Modelos -->
 <div class="row mb-4">
@@ -146,7 +272,7 @@ setTimeout(() => location.reload(), 3000);
             <div class="card-header">
                 <i class="bi bi-trophy"></i> Ranking de Modelos
                 <small class="text-muted ms-2">
-                    (ordenado por {{ 'AUC' if experiment.problem_type.value == 'classification' else 'RMSE' }})
+                    (ordenado por {{ 'AUC' if experiment.problem_type.value == 'classification' else 'MAPE' if experiment.problem_type.value == 'time_series' else 'RMSE' }})
                 </small>
             </div>
             <div class="card-body">
@@ -162,6 +288,12 @@ setTimeout(() => location.reload(), 3000);
                                     <th>Precision</th>
                                     <th>Recall</th>
                                     <th>F1</th>
+                                {% elif experiment.problem_type.value == 'time_series' %}
+                                    <th>MAPE</th>
+                                    <th>SMAPE</th>
+                                    <th>RMSE</th>
+                                    <th>MAE</th>
+                                    <th>R²</th>
                                 {% else %}
                                     <th>RMSE</th>
                                     <th>MAE</th>
@@ -189,6 +321,12 @@ setTimeout(() => location.reload(), 3000);
                                     <td>{{ "%.4f"|format(model.metrics.get('precision', 0)) }}</td>
                                     <td>{{ "%.4f"|format(model.metrics.get('recall', 0)) }}</td>
                                     <td>{{ "%.4f"|format(model.metrics.get('f1', 0)) }}</td>
+                                {% elif experiment.problem_type.value == 'time_series' %}
+                                    <td><strong>{{ "%.2f"|format(model.metrics.get('mape', 0)) }}%</strong></td>
+                                    <td>{{ "%.2f"|format(model.metrics.get('smape', 0)) }}%</td>
+                                    <td>{{ "%.4f"|format(model.metrics.get('rmse', 0)) }}</td>
+                                    <td>{{ "%.4f"|format(model.metrics.get('mae', 0)) }}</td>
+                                    <td>{{ "%.4f"|format(model.metrics.get('r2', 0)) }}</td>
                                 {% else %}
                                     <td><strong>{{ "%.4f"|format(model.metrics.get('rmse', 0)) }}</strong></td>
                                     <td>{{ "%.4f"|format(model.metrics.get('mae', 0)) }}</td>
@@ -342,8 +480,353 @@ setTimeout(() => location.reload(), 3000);
 </div>
 {% endblock %}
 
+{% block extra_css %}
+<style>
+#forecastChart {
+    max-height: 400px;
+}
+</style>
+{% endblock %}
+
 {% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
+let forecastChart = null;
+const experimentId = {{ experiment.id }};
+const isTimeSeries = {{ 'true' if experiment.problem_type.value == 'time_series' else 'false' }};
+const hasIdColumn = {{ 'true' if experiment.id_column else 'false' }};
+
+// Inicializa o gráfico de previsões se for séries temporais
+if (isTimeSeries) {
+    document.addEventListener('DOMContentLoaded', async function() {
+        // Carrega séries disponíveis
+        if (hasIdColumn) {
+            await loadAvailableSeries();
+        }
+
+        // Carrega o gráfico
+        await loadForecastChart();
+
+        // Eventos de mudança
+        const modelSelect = document.getElementById('modelSelect');
+        if (modelSelect) {
+            modelSelect.addEventListener('change', loadForecastChart);
+        }
+
+        const seriesSelect = document.getElementById('seriesSelect');
+        if (seriesSelect) {
+            seriesSelect.addEventListener('change', loadForecastChart);
+        }
+    });
+}
+
+async function loadAvailableSeries() {
+    try {
+        const response = await fetch(`/api/experiments/${experimentId}/series`);
+        const data = await response.json();
+
+        const seriesSelect = document.getElementById('seriesSelect');
+        if (seriesSelect && data.series && data.series.length > 0) {
+            seriesSelect.innerHTML = data.series.map((s, i) =>
+                `<option value="${s}" ${i === 0 ? 'selected' : ''}>${s}</option>`
+            ).join('');
+        }
+    } catch (error) {
+        console.error('Erro ao carregar séries:', error);
+    }
+}
+
+async function loadForecastChart() {
+    const chartLoading = document.getElementById('chartLoading');
+    const chartContainer = document.getElementById('chartContainer');
+    const chartError = document.getElementById('chartError');
+
+    if (!chartLoading || !chartContainer) return;
+
+    chartLoading.style.display = 'block';
+    chartContainer.style.display = 'none';
+    chartError.style.display = 'none';
+
+    try {
+        const modelSelect = document.getElementById('modelSelect');
+        const seriesSelect = document.getElementById('seriesSelect');
+        const selectedModel = modelSelect ? modelSelect.value : null;
+        const isAllModels = selectedModel === 'all';
+
+        let url;
+        const params = new URLSearchParams();
+
+        if (isAllModels) {
+            url = `/api/experiments/${experimentId}/forecast-chart-all`;
+        } else {
+            url = `/api/experiments/${experimentId}/forecast-chart`;
+            if (selectedModel) {
+                params.append('model_id', selectedModel);
+            }
+        }
+
+        if (seriesSelect && seriesSelect.value) {
+            params.append('series_id', seriesSelect.value);
+        }
+
+        if (params.toString()) {
+            url += '?' + params.toString();
+        }
+
+        const response = await fetch(url);
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.detail || 'Erro ao carregar dados');
+        }
+
+        const data = await response.json();
+
+        if (isAllModels) {
+            renderAllModelsChart(data);
+        } else {
+            renderForecastChart(data);
+        }
+
+        chartLoading.style.display = 'none';
+        chartContainer.style.display = 'block';
+
+    } catch (error) {
+        console.error('Erro ao carregar gráfico:', error);
+        chartLoading.style.display = 'none';
+        chartError.style.display = 'block';
+        document.getElementById('chartErrorMessage').textContent = error.message;
+    }
+}
+
+function renderForecastChart(data) {
+    const ctx = document.getElementById('forecastChart').getContext('2d');
+
+    // Destrói gráfico anterior se existir
+    if (forecastChart) {
+        forecastChart.destroy();
+    }
+
+    // Combina datas históricas e de previsão
+    const allDates = [...data.historical.dates, ...data.forecast.dates];
+    const historicalValues = [...data.historical.values, ...Array(data.forecast.dates.length).fill(null)];
+    const forecastValues = [...Array(data.historical.dates.length - 1).fill(null), data.historical.values[data.historical.values.length - 1], ...data.forecast.values];
+
+    // Datasets
+    const datasets = [
+        {
+            label: 'Histórico',
+            data: historicalValues,
+            borderColor: 'rgb(54, 162, 235)',
+            backgroundColor: 'rgba(54, 162, 235, 0.1)',
+            fill: false,
+            tension: 0.1,
+            pointRadius: 2
+        },
+        {
+            label: `Previsão (${data.model_name})`,
+            data: forecastValues,
+            borderColor: 'rgb(255, 99, 132)',
+            backgroundColor: 'rgba(255, 99, 132, 0.1)',
+            borderDash: [5, 5],
+            fill: false,
+            tension: 0.1,
+            pointRadius: 3
+        }
+    ];
+
+    // Adiciona intervalos de confiança se disponíveis
+    if (data.forecast.lower_bound && data.forecast.lower_bound[0] !== null) {
+        const lowerBound = [...Array(data.historical.dates.length).fill(null), ...data.forecast.lower_bound];
+        const upperBound = [...Array(data.historical.dates.length).fill(null), ...data.forecast.upper_bound];
+
+        datasets.push({
+            label: 'Limite Superior',
+            data: upperBound,
+            borderColor: 'rgba(255, 99, 132, 0.3)',
+            backgroundColor: 'transparent',
+            borderDash: [2, 2],
+            fill: false,
+            pointRadius: 0
+        });
+
+        datasets.push({
+            label: 'Limite Inferior',
+            data: lowerBound,
+            borderColor: 'rgba(255, 99, 132, 0.3)',
+            backgroundColor: 'rgba(255, 99, 132, 0.1)',
+            borderDash: [2, 2],
+            fill: '-1',
+            pointRadius: 0
+        });
+    }
+
+    forecastChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: allDates,
+            datasets: datasets
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                title: {
+                    display: true,
+                    text: data.current_series ? `Série: ${data.current_series}` : 'Previsão de Séries Temporais'
+                },
+                legend: {
+                    position: 'top'
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false
+                }
+            },
+            scales: {
+                x: {
+                    display: true,
+                    title: {
+                        display: true,
+                        text: 'Data'
+                    },
+                    ticks: {
+                        maxRotation: 45,
+                        minRotation: 45,
+                        maxTicksLimit: 15
+                    }
+                },
+                y: {
+                    display: true,
+                    title: {
+                        display: true,
+                        text: 'Valor'
+                    }
+                }
+            },
+            interaction: {
+                mode: 'nearest',
+                axis: 'x',
+                intersect: false
+            }
+        }
+    });
+}
+
+function renderAllModelsChart(data) {
+    const ctx = document.getElementById('forecastChart').getContext('2d');
+
+    if (forecastChart) {
+        forecastChart.destroy();
+    }
+
+    // Cores para diferentes modelos
+    const colors = [
+        { border: 'rgb(255, 99, 132)', bg: 'rgba(255, 99, 132, 0.1)' },   // Vermelho
+        { border: 'rgb(75, 192, 192)', bg: 'rgba(75, 192, 192, 0.1)' },   // Verde-água
+        { border: 'rgb(255, 159, 64)', bg: 'rgba(255, 159, 64, 0.1)' },   // Laranja
+        { border: 'rgb(153, 102, 255)', bg: 'rgba(153, 102, 255, 0.1)' }, // Roxo
+        { border: 'rgb(255, 205, 86)', bg: 'rgba(255, 205, 86, 0.1)' },   // Amarelo
+    ];
+
+    // Usa as datas do primeiro modelo de previsão
+    const forecastDates = data.models_forecasts.length > 0
+        ? data.models_forecasts[0].forecast.dates
+        : [];
+
+    const allDates = [...data.historical.dates, ...forecastDates];
+    const historicalValues = [...data.historical.values, ...Array(forecastDates.length).fill(null)];
+
+    // Dataset do histórico
+    const datasets = [
+        {
+            label: 'Histórico',
+            data: historicalValues,
+            borderColor: 'rgb(54, 162, 235)',
+            backgroundColor: 'rgba(54, 162, 235, 0.1)',
+            fill: false,
+            tension: 0.1,
+            pointRadius: 2
+        }
+    ];
+
+    // Adiciona dataset para cada modelo
+    data.models_forecasts.forEach((modelData, index) => {
+        const color = colors[index % colors.length];
+        const forecastValues = [
+            ...Array(data.historical.dates.length - 1).fill(null),
+            data.historical.values[data.historical.values.length - 1],
+            ...modelData.forecast.values
+        ];
+
+        const rankLabel = modelData.rank === 1 ? ' ★' : '';
+        datasets.push({
+            label: `${modelData.model_name} (${modelData.mape.toFixed(2)}% MAPE)${rankLabel}`,
+            data: forecastValues,
+            borderColor: color.border,
+            backgroundColor: color.bg,
+            borderDash: [5, 5],
+            fill: false,
+            tension: 0.1,
+            pointRadius: 3,
+            borderWidth: modelData.rank === 1 ? 3 : 2
+        });
+    });
+
+    forecastChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: allDates,
+            datasets: datasets
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                title: {
+                    display: true,
+                    text: data.current_series
+                        ? `Comparação de Modelos - Série: ${data.current_series}`
+                        : 'Comparação de Modelos'
+                },
+                legend: {
+                    position: 'top'
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false
+                }
+            },
+            scales: {
+                x: {
+                    display: true,
+                    title: {
+                        display: true,
+                        text: 'Data'
+                    },
+                    ticks: {
+                        maxRotation: 45,
+                        minRotation: 45,
+                        maxTicksLimit: 15
+                    }
+                },
+                y: {
+                    display: true,
+                    title: {
+                        display: true,
+                        text: 'Valor'
+                    }
+                }
+            },
+            interaction: {
+                mode: 'nearest',
+                axis: 'x',
+                intersect: false
+            }
+        }
+    });
+}
+
 function deployModel(modelId) {
     document.getElementById('deployModelId').value = modelId;
     new bootstrap.Modal(document.getElementById('deployModal')).show();

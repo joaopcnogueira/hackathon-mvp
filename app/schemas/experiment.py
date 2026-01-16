@@ -12,7 +12,9 @@ class ExperimentCreate(BaseModel):
     dataset_id: int
     target_column: str
     feature_columns: list[str]
-    problem_type: str  # "classification" ou "regression"
+    problem_type: str  # "classification", "regression" ou "time_series"
+    date_column: str | None = None  # Obrigatório para time_series
+    id_column: str | None = None  # Opcional: identificador de múltiplas séries
 
 
 class TrainedModelResponse(BaseModel):
@@ -40,6 +42,8 @@ class ExperimentResponse(BaseModel):
     problem_type: str
     status: str
     preprocessing_info: dict[str, Any] | None
+    date_column: str | None = None
+    id_column: str | None = None
     created_at: datetime
     trained_models: list[TrainedModelResponse] = []
 
