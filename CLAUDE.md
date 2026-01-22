@@ -18,6 +18,9 @@
 - Evite comentários redundantes que apenas repetem o que o código já diz claramente
 - Confie na clareza do código: nomes descritivos devem tornar comentários desnecessários na maioria dos casos
 
+## Gerenciamento de Ambientes e Pacotes
+- Utilize sempre o uv
+
 ## Estrutura e Organização
 
 - Mantenha funções e métodos curtos, com uma única responsabilidade

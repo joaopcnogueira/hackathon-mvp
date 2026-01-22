@@ -17,6 +17,7 @@ dependencies = [
     "pmdarima>=2.0.0",
     "statsmodels>=0.14.0",
     "prophet>=1.1.0",
+    "nbconvert>=7.16.6",
 ]
 
 [build-system]
@@ -25,3 +26,8 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["app"]
+
+[dependency-groups]
+dev = [
+    "ipykernel>=7.1.0",
+]
