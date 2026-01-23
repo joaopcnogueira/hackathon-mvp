@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hackathon 2026 — Plataforma AutoML</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.6.1/dist/reveal.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.6.1/dist/theme/black.css">
+    <style>
+        /* Minerva Foods Brand Colors */
+        :root {
+            --minerva-red: #C41230;
+            --minerva-red-light: #E8334D;
+            --minerva-dark: #1A1A1A;
+            --minerva-gray: #2B3D4A;
+            --minerva-light: #F5F5F5;
+            --r-heading-color: #C41230;
+            --r-link-color: #C41230;
+            --r-background-color: #1A1A1A;
+        }
+        .reveal {
+            background: linear-gradient(135deg, #1A1A1A 0%, #2B3D4A 100%);
+        }
+        .reveal h1, .reveal h2, .reveal h3 {
+            text-transform: none;
+        }
+        .reveal h1 {
+            font-size: 2.2em;
+            color: #C41230;
+        }
+        .reveal h2 {
+            font-size: 1.6em;
+            color: #C41230;
+        }
+        .reveal h3 {
+            font-size: 1.3em;
+            color: #E8334D;
+        }
+        .reveal p, .reveal li {
+            color: #F5F5F5;
+        }
+        .reveal ul, .reveal ol {
+            display: block;
+            text-align: left;
+            margin-left: 1em;
+        }
+        .reveal li {
+            margin: 0.5em 0;
+            font-size: 0.85em;
+        }
+        .reveal table {
+            margin: 0 auto;
+            font-size: 0.7em;
+        }
+        .reveal th {
+            background: #C41230;
+            color: #ffffff;
+            padding: 0.5em 1em;
+        }
+        .reveal td {
+            padding: 0.4em 1em;
+            border-bottom: 1px solid #2B3D4A;
+            color: #F5F5F5;
+        }
+        .reveal .highlight {
+            color: #E8334D;
+            font-weight: bold;
+        }
+        .reveal .stat {
+            font-size: 3em;
+            color: #C41230;
+            font-weight: bold;
+        }
+        .reveal blockquote {
+            background: rgba(196, 18, 48, 0.1);
+            border-left: 4px solid #C41230;
+            padding: 1em;
+            font-style: normal;
+            width: 80%;
+        }
+        .reveal .emoji {
+            font-size: 4em;
+        }
+        .two-columns {
+            display: flex;
+            gap: 2em;
+            justify-content: center;
+        }
+        .two-columns > div {
+            flex: 1;
+            text-align: left;
+        }
+        .small {
+            font-size: 0.7em !important;
+        }
+        .reveal .slides section .fragment.current-visible.current-fragment {
+            display: block;
+        }
+        /* Subtle accent line for headings */
+        .reveal section > h2:first-child::after {
+            content: "";
+            display: block;
+            width: 60px;
+            height: 3px;
+            background: #C41230;
+            margin: 0.5em auto 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="reveal">
+        <div class="slides">
+
+            <!-- SLIDE 1: Título -->
+            <section>
+                <p style="color: #C41230; font-size: 0.9em; margin-bottom: 0.5em;">Minerva Foods</p>
+                <h1 style="margin-top: 0;">Hackathon 2026</h1>
+                <h2>Plataforma AutoML</h2>
+                <p style="margin-top: 2em; color: #888;">02 a 06 de Fevereiro</p>
+            </section>
+
+            <!-- SLIDE 2: O Problema -->
+            <section>
+                <h2>O Problema</h2>
+                <p class="stat">80%</p>
+                <p>do tempo de cientistas de dados é gasto em<br>tarefas repetitivas</p>
+                <p class="fragment" style="margin-top: 1em; color: #8b949e;">
+                    Limpeza de dados • Tratamento de nulos • Seleção de variáveis • Experimentação
+                </p>
+                <p class="fragment small" style="margin-top: 1.5em; color: #666;">
+                    Fonte: <a href="https://www.forbes.com/sites/gilpress/2016/03/23/data-preparation-most-time-consuming-least-enjoyable-data-science-task-survey-says/" target="_blank" style="color: #888;">Forbes/CrowdFlower Data Science Survey, 2016</a>
+                </p>
+            </section>
+
+            <!-- SLIDE 3: A Solução -->
+            <section>
+                <h2>A Solução: AutoML</h2>
+                <p><strong>Automated Machine Learning</strong></p>
+                <p style="margin-top: 1em;">Democratizar o acesso à inteligência artificial,<br>
+                permitindo que <span class="highlight">qualquer pessoa</span> treine modelos<br>
+                <span class="highlight">sem escrever código</span></p>
+            </section>
+
+            <!-- SLIDE 4: O Desafio -->
+            <section>
+                <h2>O Desafio</h2>
+                <p>Construir uma <span class="highlight">plataforma AutoML no-code</span></p>
+                <p style="margin-top: 1em; color: #8b949e;">(point & click)</p>
+                <p style="margin-top: 1em;">Que permita a qualquer usuário — técnico ou não —<br>
+                treinar modelos de machine learning de forma<br>
+                <span class="highlight">intuitiva e profissional</span></p>
+            </section>
+
+            <!-- SLIDE 5: Funcionalidades - Overview -->
+            <section>
+                <h2>O que a plataforma deve fazer?</h2>
+                <ol>
+                    <li class="fragment">Upload e Análise de Dados</li>
+                    <li class="fragment">Pré-processamento Automático</li>
+                    <li class="fragment">Treinamento de Modelos</li>
+                    <li class="fragment">Avaliação e Comparação</li>
+                    <li class="fragment">Deploy do Modelo</li>
+                </ol>
+            </section>
+
+            <!-- SLIDE 6: Upload -->
+            <section>
+                <h2>1. Upload e Análise de Dados</h2>
+                <ul>
+                    <li>Aceitar arquivos <span class="highlight">CSV</span> e <span class="highlight">Excel</span></li>
+                    <li>Detectar automaticamente tipos de colunas</li>
+                    <li>Identificar valores nulos e problemas</li>
+                    <li>Exibir estatísticas descritivas</li>
+                </ul>
+            </section>
+
+            <!-- SLIDE 7: Pré-processamento -->
+            <section>
+                <h2>2. Pré-processamento Automático</h2>
+                <ul>
+                    <li>Tratamento de valores faltantes (imputação)</li>
+                    <li>Codificação de variáveis categóricas</li>
+                    <li>Normalização/padronização de features</li>
+                    <li>Divisão treino/teste <span class="highlight">correta</span></li>
+                </ul>
+                <blockquote class="fragment" style="margin-top: 1em;">
+                    Evitar <strong>data leakage</strong>: split deve ocorrer<br>
+                    <em>antes</em> do pré-processamento
+                </blockquote>
+            </section>
+
+            <!-- SLIDE 8: Tipos de Problema -->
+            <section>
+                <h2>3. Tipos de Problema</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Tipo</th>
+                            <th>Descrição</th>
+                            <th>Exemplo</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="fragment">
+                            <td><strong>Classificação</strong></td>
+                            <td>Prever categorias</td>
+                            <td>Cliente vai comprar?</td>
+                        </tr>
+                        <tr class="fragment">
+                            <td><strong>Regressão</strong></td>
+                            <td>Prever valores contínuos</td>
+                            <td>Qual será o custo?</td>
+                        </tr>
+                        <tr class="fragment">
+                            <td><strong>Séries Temporais</strong></td>
+                            <td>Prever valores futuros</td>
+                            <td>Demanda do próximo mês?</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <!-- SLIDE 9: Avaliação -->
+            <section>
+                <h2>4. Avaliação e Comparação</h2>
+                <ul>
+                    <li>Calcular <span class="highlight">métricas apropriadas</span> para cada tipo</li>
+                    <li>Comparar performance entre algoritmos</li>
+                    <li>Exibir <span class="highlight">ranking</span> dos melhores modelos</li>
+                </ul>
+            </section>
+
+            <!-- SLIDE 10: Deploy -->
+            <section>
+                <h2>5. Deploy do Modelo</h2>
+                <div class="two-columns">
+                    <div class="fragment">
+                        <h3>API REST</h3>
+                        <p>Predições em<br>tempo real</p>
+                    </div>
+                    <div class="fragment">
+                        <h3>Batch</h3>
+                        <p>Processar múltiplos<br>registros de uma vez</p>
+                    </div>
+                </div>
+                <p class="fragment" style="margin-top: 1.5em;">+ Download de artefatos (modelo treinado)</p>
+            </section>
+
+            <!-- SLIDE 11: Datasets -->
+            <section>
+                <h2>Datasets</h2>
+                <p style="margin-bottom: 1em;">Todos os times usam os <span class="highlight">mesmos datasets</span></p>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Tema</th>
+                            <th>Dataset</th>
+                            <th>Objetivo</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Classificação</td>
+                            <td><a href="https://archive.ics.uci.edu/dataset/468/online+shoppers+purchasing+intention+dataset" target="_blank" style="color: #E8334D;">Online Shoppers</a></td>
+                            <td>Prever se visitante comprará</td>
+                        </tr>
+                        <tr>
+                            <td>Regressão</td>
+                            <td><a href="https://www.kaggle.com/datasets/mirichoi0218/insurance" target="_blank" style="color: #E8334D;">Insurance</a></td>
+                            <td>Prever custo de seguro</td>
+                        </tr>
+                        <tr>
+                            <td>Séries Temporais</td>
+                            <td><a href="https://www.kaggle.com/datasets/sumanthvrao/daily-climate-time-series-data" target="_blank" style="color: #E8334D;">Daily Temperature</a></td>
+                            <td>Prever valores futuros</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <blockquote class="fragment" style="margin-top: 1em;">
+                    Durante a avaliação, haverá <strong>datasets ocultos</strong><br>
+                    para testar a robustez da solução
+                </blockquote>
+            </section>
+
+            <!-- SLIDE 12: Avaliação - Funcionalidade -->
+            <section>
+                <h2>Critérios de Avaliação</h2>
+                <h3>Funcionalidade</h3>
+                <p style="margin-bottom: 1em;">10 itens por tema (classificação, regressão, séries temporais)</p>
+                <div class="small" style="text-align: left; max-width: 700px; margin: 0 auto;">
+                    <ul>
+                        <li>Upload funciona corretamente</li>
+                        <li>Detecção automática do tipo de problema</li>
+                        <li>Pré-processamento executa sem erros</li>
+                        <li>Treinamento completa com sucesso</li>
+                        <li>Métricas exibidas corretamente</li>
+                        <li>Comparativo entre modelos</li>
+                        <li>Deploy via API funciona</li>
+                        <li>Deploy via Batch funciona</li>
+                        <li>Interface intuitiva e responsiva</li>
+                        <li>Sem erros ou travamentos</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- SLIDE 13: Avaliação - Performance -->
+            <section>
+                <h2>Critérios de Avaliação</h2>
+                <h3>Performance</h3>
+                <p style="margin-bottom: 1em;">Critério de desempate</p>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Tipo</th>
+                            <th>Métrica</th>
+                            <th>Critério</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Classificação</td>
+                            <td>F1-Score</td>
+                            <td>Maior é melhor</td>
+                        </tr>
+                        <tr>
+                            <td>Regressão</td>
+                            <td>R² Score</td>
+                            <td>Maior é melhor</td>
+                        </tr>
+                        <tr>
+                            <td>Séries Temporais</td>
+                            <td>MAPE</td>
+                            <td>Menor é melhor</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p class="fragment" style="margin-top: 1em;">
+                    <strong>Nota Final</strong> = (Classificação + Regressão + Séries) / 3
+                </p>
+            </section>
+
+            <!-- SLIDE 14: Cronograma -->
+            <section>
+                <h2>Cronograma</h2>
+                <table>
+                    <tbody>
+                        <tr>
+                            <td><strong>02/02</strong></td>
+                            <td>Viagem + Abertura</td>
+                        </tr>
+                        <tr>
+                            <td><strong>03/02</strong></td>
+                            <td>Desenvolvimento</td>
+                        </tr>
+                        <tr>
+                            <td><strong>04/02</strong></td>
+                            <td>Desenvolvimento</td>
+                        </tr>
+                        <tr>
+                            <td><strong>05/02</strong></td>
+                            <td>Desenvolvimento</td>
+                        </tr>
+                        <tr>
+                            <td><strong>06/02</strong></td>
+                            <td>Apresentação + Avaliação + Premiação</td>
+                        </tr>
+                        <tr>
+                            <td><strong>07/02</strong></td>
+                            <td>Viagem de retorno</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <!-- SLIDE 15: Entregáveis -->
+            <section>
+                <h2>Entregáveis</h2>
+                <ul>
+                    <li><span class="highlight">Plataforma funcional</span> — Interface no-code intuitiva</li>
+                    <li><span class="highlight">Documentação</span> — Instruções mínimas de uso</li>
+                    <li><span class="highlight">Demonstração ao vivo</span> — Fluxo upload → treino → deploy</li>
+                    <li><span class="highlight">API disponível</span> — Para teste durante avaliação</li>
+                </ul>
+            </section>
+
+            <!-- SLIDE 16: Inspirações -->
+            <section>
+                <h2>Inspirações</h2>
+                <div class="two-columns">
+                    <div>
+                        <ul>
+                            <li><strong>Orange Data Mining</strong><br><span class="small">Interface visual com blocos</span></li>
+                            <li><strong>Azure ML Studio</strong><br><span class="small">Fluxo guiado e profissional</span></li>
+                        </ul>
+                    </div>
+                    <div>
+                        <ul>
+                            <li><strong>Google AutoML</strong><br><span class="small">Simplicidade e foco no usuário</span></li>
+                            <li><strong>H2O Driverless AI</strong><br><span class="small">Automação inteligente</span></li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SLIDE 17: Dicas -->
+            <section>
+                <h2>Dicas para os Times</h2>
+                <ol>
+                    <li class="fragment"><strong>Foco na experiência do usuário</strong><br>
+                        <span class="small">A plataforma é para quem NÃO sabe programar</span></li>
+                    <li class="fragment"><strong>Evitem data leakage</strong><br>
+                        <span class="small">Split treino/teste ANTES do pré-processamento</span></li>
+                    <li class="fragment"><strong>Métricas corretas para cada problema</strong><br>
+                        <span class="small">Não usem métricas de classificação em regressão</span></li>
+                    <li class="fragment"><strong>Testem com os datasets fornecidos</strong><br>
+                        <span class="small">Mas lembrem: haverá datasets surpresa</span></li>
+                    <li class="fragment"><strong>Priorizem funcionalidade básica</strong><br>
+                        <span class="small">Melhor simples que funciona do que complexo quebrado</span></li>
+                </ol>
+            </section>
+
+            <!-- SLIDE 18: Final -->
+            <section>
+                <h1>Boa sorte!</h1>
+                <p style="font-size: 1.5em; margin-top: 1em;">Que vença o melhor time!</p>
+                <p style="margin-top: 2em; color: #C41230; font-size: 0.8em;">Minerva Foods — Hackathon 2026</p>
+            </section>
+
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js@4.6.1/dist/reveal.js"></script>
+    <script>
+        Reveal.initialize({
+            hash: true,
+            slideNumber: true,
+            transition: 'slide',
+            controls: true,
+            progress: true,
+            center: true,
+            width: 1200,
+            height: 700
+        });
+    </script>
+</body>
+</html>
