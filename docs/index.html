@@ -219,6 +219,9 @@
                         </tr>
                     </tbody>
                 </table>
+                <p class="fragment" style="margin-top: 1em; font-size: 0.8em; color: #C41230;">
+                    <strong>Mínimo de 3 algoritmos</strong> para cada tipo de problema
+                </p>
             </section>
 
             <!-- SLIDE 9: Avaliação -->
@@ -247,7 +250,40 @@
                 <p class="fragment" style="margin-top: 1.5em;">+ Download de artefatos (modelo treinado)</p>
             </section>
 
-            <!-- SLIDE 11: Datasets -->
+            <!-- SLIDE 11: Fluxo do Usuário -->
+            <section>
+                <h2>Fluxo do Usuário</h2>
+                <div style="display: flex; align-items: center; justify-content: center; gap: 0.4em; flex-wrap: wrap; margin-top: 1em; font-size: 0.7em;">
+                    <div class="fragment" style="background: #C41230; color: white; padding: 0.6em 1em; border-radius: 8px; text-align: center;">
+                        1. Upload
+                    </div>
+                    <span class="fragment" style="color: #C41230; font-size: 1.5em;">→</span>
+                    <div class="fragment" style="background: #C41230; color: white; padding: 0.6em 1em; border-radius: 8px; text-align: center;">
+                        2. Análise
+                    </div>
+                    <span class="fragment" style="color: #C41230; font-size: 1.5em;">→</span>
+                    <div class="fragment" style="background: #C41230; color: white; padding: 0.6em 1em; border-radius: 8px; text-align: center;">
+                        3. Target
+                    </div>
+                    <span class="fragment" style="color: #C41230; font-size: 1.5em;">→</span>
+                    <div class="fragment" style="background: #C41230; color: white; padding: 0.6em 1em; border-radius: 8px; text-align: center;">
+                        4. Treinar
+                    </div>
+                    <span class="fragment" style="color: #C41230; font-size: 1.5em;">→</span>
+                    <div class="fragment" style="background: #C41230; color: white; padding: 0.6em 1em; border-radius: 8px; text-align: center;">
+                        5. Avaliar
+                    </div>
+                    <span class="fragment" style="color: #C41230; font-size: 1.5em;">→</span>
+                    <div class="fragment" style="background: #2B3D4A; color: white; padding: 0.6em 1em; border-radius: 8px; text-align: center;">
+                        6. Deploy
+                    </div>
+                </div>
+                <div class="fragment" style="margin-top: 2em; font-size: 0.75em; color: #666;">
+                    <p><strong style="color: #C41230;">Tudo no-code</strong> — O usuário apenas clica e configura</p>
+                </div>
+            </section>
+
+            <!-- SLIDE 12: Datasets -->
             <section>
                 <h2>Datasets</h2>
                 <p style="margin-bottom: 1em;">Todos os times usam os <span class="highlight">mesmos datasets</span></p>
@@ -287,21 +323,30 @@
             <section>
                 <h2>Critérios de Avaliação</h2>
                 <h3>Funcionalidade</h3>
-                <p style="margin-bottom: 1em;">10 itens por tema (classificação, regressão, séries temporais)</p>
-                <div class="small" style="text-align: left; max-width: 700px; margin: 0 auto;">
-                    <ul>
-                        <li>Upload funciona corretamente</li>
-                        <li>Detecção automática do tipo de problema</li>
-                        <li>Pré-processamento executa sem erros</li>
-                        <li>Treinamento completa com sucesso</li>
-                        <li>Métricas exibidas corretamente</li>
-                        <li>Comparativo entre modelos</li>
-                        <li>Deploy via API funciona</li>
-                        <li>Deploy via Batch funciona</li>
-                        <li>Interface intuitiva e responsiva</li>
-                        <li>Sem erros ou travamentos</li>
-                    </ul>
+                <p style="margin-bottom: 0.5em;">10 itens por tema (classificação, regressão, séries temporais)</p>
+                <div class="two-columns" style="font-size: 0.75em;">
+                    <div>
+                        <ul>
+                            <li>Upload funciona corretamente</li>
+                            <li>Detecção automática do tipo de problema</li>
+                            <li>Identificação correta da coluna target</li>
+                            <li>Pré-processamento executa sem erros</li>
+                            <li>Treinamento completa com sucesso</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <ul>
+                            <li>Métricas exibidas corretamente</li>
+                            <li>Comparativo entre modelos</li>
+                            <li>Deploy via API funciona</li>
+                            <li>Deploy via Batch funciona</li>
+                            <li>Interface intuitiva e responsiva</li>
+                        </ul>
+                    </div>
                 </div>
+                <p class="fragment" style="margin-top: 1em; font-size: 0.8em;">
+                    <strong>Nota Funcionalidade</strong> = Classificação + Regressão + Séries Temporais
+                </p>
             </section>
 
             <!-- SLIDE 13: Avaliação - Performance -->
@@ -336,7 +381,7 @@
                     </tbody>
                 </table>
                 <p class="fragment" style="margin-top: 1em;">
-                    <strong>Nota Final</strong> = (Classificação + Regressão + Séries) / 3
+                    <strong>Nota Performance</strong> = (Classificação + Regressão + Séries) / 3
                 </p>
             </section>
 

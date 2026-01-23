@@ -36,6 +36,8 @@ A plataforma deve suportar **três tipos de problemas**:
 | **Regressão** | Prever valores numéricos contínuos | Qual será o custo? Qual o preço? |
 | **Séries Temporais** | Prever valores futuros baseados em histórico | Qual a demanda do próximo mês? |
 
+> **Mínimo de 3 algoritmos** para cada tipo de problema
+
 **4. Avaliação e Comparação**
 - Calcular métricas apropriadas para cada tipo de problema
 - Comparar performance entre diferentes algoritmos
@@ -82,6 +84,7 @@ Cada tema (classificação, regressão, séries temporais) será avaliado em **1
 
 - Upload do dataset funciona corretamente
 - Detecção automática do tipo de problema
+- Identificação correta da coluna target
 - Pré-processamento executa sem erros
 - Treinamento completa com sucesso
 - Métricas são exibidas corretamente
@@ -89,7 +92,8 @@ Cada tema (classificação, regressão, séries temporais) será avaliado em **1
 - Deploy via API funciona
 - Deploy via Batch funciona
 - Interface intuitiva e responsiva
-- Não apresenta erros ou travamentos
+
+**Nota Funcionalidade** = Classificação + Regressão + Séries Temporais
 
 ### Performance (critério de desempate)
 Em caso de empate funcional, a performance dos modelos será considerada:
@@ -100,7 +104,7 @@ Em caso de empate funcional, a performance dos modelos será considerada:
 | Regressão | R² Score | Maior é melhor |
 | Séries Temporais | MAPE | Menor é melhor |
 
-**Nota Final = (Nota Classificação + Nota Regressão + Nota Séries Temporais) / 3**
+**Nota Performance** = (Classificação + Regressão + Séries Temporais) / 3
 
 ---
 
